@@ -673,7 +673,7 @@
 
 <!-- Tailor Modal -->
 <div id="tailor-modal" class="modal">
-  <div class="modal-content" style="max-width: 800px;">
+  <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
     <h2>AI Resume Tailoring</h2>
     <div class="form-group">
       <label>Select Resume</label>
@@ -690,52 +690,51 @@
       <button type="button" class="btn primary" id="do-tailor">Tailor with AI</button>
     </div>
     <div id="tailor-result" class="tailor-result" style="display:none;">
-      <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
+      <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; gap: 8px; align-items: center;">
           <strong>Match Score: </strong>
           <span id="match-score" class="score-badge score-medium">Calculating...</span>
         </div>
-        <div>
-          <button type="button" class="btn" id="toggle-view" style="font-size: 12px;">Toggle View</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn" id="tab-highlighted" style="font-size: 12px; padding: 4px 12px;">Highlighted</button>
+          <button type="button" class="btn" id="tab-sidebyside" style="font-size: 12px; padding: 4px 12px;">Side-by-Side</button>
+          <button type="button" class="btn" id="tab-plain" style="font-size: 12px; padding: 4px 12px;">Plain Text</button>
         </div>
       </div>
       
-      <div id="keyword-analysis" class="keyword-analysis" style="display:none;">
-        <strong>Keyword Analysis:</strong>
-        <div id="keyword-matches" style="margin-top: 8px;"></div>
-        <div id="keyword-missing" style="margin-top: 8px;"></div>
-      </div>
-
-      <div id="single-view" style="display: block;">
-        <div style="margin-bottom: 12px;">
-          <strong>Tailored Resume (changes highlighted):</strong>
+      <div id="keyword-analysis" class="keyword-analysis" style="display:none; margin-bottom: 8px;">
+        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+          <div><strong>Matched:</strong> <span id="keyword-matches"></span></div>
+          <div><strong>Missing:</strong> <span id="keyword-missing"></span></div>
         </div>
-        <div id="tailor-result-highlighted" style="margin-bottom: 12px; padding: 12px; background: #fafafa; border: 1px solid #d4d4d4; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.4; max-height: 300px; overflow-y: auto;"></div>
       </div>
 
-      <div id="side-by-side-view" style="display: none;">
-        <div class="side-by-side-container">
+      <div id="tab-highlighted-content" style="display: block;">
+        <div id="tailor-result-highlighted" style="padding: 12px; background: #fafafa; border: 1px solid #d4d4d4; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.4; height: 400px; overflow-y: auto;"></div>
+      </div>
+
+      <div id="tab-sidebyside-content" style="display: none;">
+        <div class="side-by-side-container" style="height: 400px;">
           <div class="side-by-side-pane">
-            <h4>Original Resume</h4>
+            <h4>Original</h4>
             <div id="original-resume" class="side-by-side-content"></div>
           </div>
           <div class="side-by-side-pane">
-            <h4>Tailored Resume</h4>
+            <h4>Tailored</h4>
             <div id="tailored-resume" class="side-by-side-content"></div>
           </div>
         </div>
       </div>
 
-      <div style="margin-bottom: 12px;">
-        <strong>Plain text (for saving):</strong>
+      <div id="tab-plain-content" style="display: none;">
+        <textarea id="tailor-result-text" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
       </div>
-      <textarea id="tailor-result-text" rows="15" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
       
       <div class="modal-actions" style="margin-top: 12px;">
-        <button type="button" class="btn" id="copy-to-clipboard">Copy to Clipboard</button>
-        <button type="button" class="btn" id="download-txt">Download TXT</button>
+        <button type="button" class="btn" id="copy-to-clipboard">Copy</button>
+        <button type="button" class="btn" id="download-txt">Download</button>
         <button type="button" class="btn" id="close-tailor-result">Close</button>
-        <button type="button" class="btn primary" id="save-tailored-resume">Save as New Resume</button>
+        <button type="button" class="btn primary" id="save-tailored-resume">Save</button>
       </div>
     </div>
   </div>
@@ -1053,7 +1052,9 @@
   const doTailorBtn = document.getElementById('do-tailor');
   const closeTailorResultBtn = document.getElementById('close-tailor-result');
   const saveTailoredResumeBtn = document.getElementById('save-tailored-resume');
-  const toggleViewBtn = document.getElementById('toggle-view');
+  const tabHighlightedBtn = document.getElementById('tab-highlighted');
+  const tabSideBySideBtn = document.getElementById('tab-sidebyside');
+  const tabPlainBtn = document.getElementById('tab-plain');
   const copyToClipboardBtn = document.getElementById('copy-to-clipboard');
   const downloadTxtBtn = document.getElementById('download-txt');
   
@@ -1068,20 +1069,33 @@
     tailorModal.classList.remove('show');
   });
 
-  toggleViewBtn.addEventListener('click', () => {
-    const singleView = document.getElementById('single-view');
-    const sideBySideView = document.getElementById('side-by-side-view');
+  function switchTab(tab) {
+    // Hide all tab contents
+    document.getElementById('tab-highlighted-content').style.display = 'none';
+    document.getElementById('tab-sidebyside-content').style.display = 'none';
+    document.getElementById('tab-plain-content').style.display = 'none';
     
-    if (singleView.style.display === 'block') {
-      singleView.style.display = 'none';
-      sideBySideView.style.display = 'block';
-      toggleViewBtn.textContent = 'Single View';
-    } else {
-      singleView.style.display = 'block';
-      sideBySideView.style.display = 'none';
-      toggleViewBtn.textContent = 'Toggle View';
+    // Reset all tab buttons
+    tabHighlightedBtn.style.background = '';
+    tabSideBySideBtn.style.background = '';
+    tabPlainBtn.style.background = '';
+    
+    // Show selected tab
+    if (tab === 'highlighted') {
+      document.getElementById('tab-highlighted-content').style.display = 'block';
+      tabHighlightedBtn.style.background = '#e0e0e0';
+    } else if (tab === 'sidebyside') {
+      document.getElementById('tab-sidebyside-content').style.display = 'block';
+      tabSideBySideBtn.style.background = '#e0e0e0';
+    } else if (tab === 'plain') {
+      document.getElementById('tab-plain-content').style.display = 'block';
+      tabPlainBtn.style.background = '#e0e0e0';
     }
-  });
+  }
+
+  tabHighlightedBtn.addEventListener('click', () => switchTab('highlighted'));
+  tabSideBySideBtn.addEventListener('click', () => switchTab('sidebyside'));
+  tabPlainBtn.addEventListener('click', () => switchTab('plain'));
 
   copyToClipboardBtn.addEventListener('click', () => {
     const text = document.getElementById('tailor-result-text').value;
@@ -1175,6 +1189,10 @@
       
       document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
+      
+      // Initialize tab to highlighted view
+      switchTab('highlighted');
+      
       document.getElementById('tailor-result').style.display = 'block';
       document.getElementById('tailor-input-actions').style.display = 'none';
     } catch (error) {
@@ -1185,6 +1203,7 @@
       const highlighted = parseHighlighting(tailored);
       document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
+      switchTab('highlighted');
       document.getElementById('tailor-result').style.display = 'block';
       document.getElementById('tailor-input-actions').style.display = 'none';
     } finally {
