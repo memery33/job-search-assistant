@@ -29,6 +29,7 @@ WHAT YOU MUST DO:
 4. ADD context to bullet points that align with what the job is looking for
 5. Move the most relevant experience and skills to the TOP of each section
 6. REORDER bullet points within each job to put the most relevant ones first
+7. MARK all changes by wrapping modified text in double asterisks: **changed text**
 
 WHAT YOU MUST NOT DO:
 1. Remove any jobs or experience
@@ -39,9 +40,9 @@ WHAT YOU MUST NOT DO:
 EXAMPLE TRANSFORMATION:
 Original: "Managed team of 5 developers"
 Job wants: "leadership" and "agile"
-Tailored: "Led agile development team of 5 developers, implementing Scrum methodologies and improving delivery speed by 30%"
+Tailored: "**Led** **agile** development team of 5 developers, **implementing Scrum methodologies** and **improving delivery speed by 30%**"
 
-Return the COMPLETE tailored resume with the same overall structure but with significantly improved content that matches the job description.`,
+Return the COMPLETE tailored resume with the same overall structure but with significantly improved content that matches the job description. ALL changes must be marked with **double asterisks**.`,
         messages: [
           {
             role: 'user',

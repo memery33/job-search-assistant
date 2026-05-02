@@ -295,6 +295,12 @@
     opacity: 0.6;
     pointer-events: none;
   }
+  .highlight-change {
+    background-color: #fff3cd;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -903,7 +909,8 @@
     
     try {
       const tailored = await tailorWithGroq(resume.content, jobDesc);
-      document.getElementById('tailor-result').textContent = tailored;
+      const highlighted = parseHighlighting(tailored);
+      document.getElementById('tailor-result').innerHTML = highlighted;
       document.getElementById('tailor-result').style.display = 'block';
     } catch (error) {
       alert('Error tailoring resume: ' + error.message);
@@ -936,6 +943,11 @@
 
     const data = await response.json();
     return data.result;
+  }
+
+  function parseHighlighting(text) {
+    // Replace **text** with <span class="highlight-change">text</span>
+    return text.replace(/\*\*([^*]+)\*\*/g, '<span class="highlight-change">$1</span>');
   }
 
   function demoTailor(resumeContent, jobDescription) {
