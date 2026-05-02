@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4096,
         system: `You are an expert resume writer. Your task is to tailor a resume to better match a job description.
 
