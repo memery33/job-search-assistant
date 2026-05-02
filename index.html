@@ -204,8 +204,10 @@
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    overscroll-behavior: contain;
   }
   .modal.show { display: flex; }
+  body.modal-open { overflow: hidden; }
   .modal-content {
     background: white;
     border-radius: 12px;
@@ -717,6 +719,16 @@
   let editingJobId = null;
   let editingResumeId = null;
 
+  // Modal scroll lock helpers
+  function showModal(modal) {
+    modal.classList.add('show');
+    document.body.classList.add('modal-open');
+  }
+  function hideModal(modal) {
+    modal.classList.remove('show');
+    document.body.classList.remove('modal-open');
+  }
+
   // Configure PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -917,11 +929,11 @@
     editingJobId = null;
     document.getElementById('job-modal-title').textContent = 'Add New Job';
     jobForm.reset();
-    jobModal.classList.add('show');
+    showModal(jobModal);
   });
 
   cancelJobBtn.addEventListener('click', () => {
-    jobModal.classList.remove('show');
+    hideModal(jobModal);
   });
 
   jobForm.addEventListener('submit', (e) => {
@@ -950,7 +962,7 @@
 
     saveJobs();
     renderJobs();
-    jobModal.classList.remove('show');
+    hideModal(jobModal);
   });
 
   // View resume modal
@@ -958,7 +970,7 @@
   const closeViewResumeBtn = document.getElementById('close-view-resume');
 
   closeViewResumeBtn.addEventListener('click', () => {
-    viewResumeModal.classList.remove('show');
+    hideModal(viewResumeModal);
   });
 
   // Resume modal
@@ -971,7 +983,7 @@
     editingResumeId = null;
     document.getElementById('resume-modal-title').textContent = 'Add New Resume';
     resumeForm.reset();
-    resumeModal.classList.add('show');
+    showModal(resumeModal);
   });
 
   // File upload handler
@@ -983,7 +995,7 @@
   });
 
   cancelResumeBtn.addEventListener('click', () => {
-    resumeModal.classList.remove('show');
+    hideModal(resumeModal);
   });
 
   resumeForm.addEventListener('submit', (e) => {
@@ -1011,7 +1023,7 @@
 
     saveResumes();
     renderResumes();
-    resumeModal.classList.remove('show');
+    hideModal(resumeModal);
   });
 
   // Tailor modal
@@ -1024,7 +1036,7 @@
   const downloadTxtBtn = document.getElementById('download-txt');
 
   cancelTailorBtn.addEventListener('click', () => {
-    tailorModal.classList.remove('show');
+    hideModal(tailorModal);
   });
 
   closeTailorResultBtn.addEventListener('click', () => {
@@ -1073,7 +1085,7 @@
     resumes.push(newResume);
     saveResumes();
     renderResumes();
-    tailorModal.classList.remove('show');
+    hideModal(tailorModal);
     alert('Tailored resume saved as a new resume!');
   });
 
@@ -1336,7 +1348,7 @@
     document.getElementById('job-requirements').value = job.requirements || '';
     document.getElementById('job-fit-notes').value = job.fitNotes || '';
     
-    jobModal.classList.add('show');
+    showModal(jobModal);
   };
 
   window.deleteJob = (id) => {
@@ -1355,7 +1367,7 @@
     document.getElementById('resume-name').value = resume.name;
     document.getElementById('resume-content').value = resume.content;
     
-    resumeModal.classList.add('show');
+    showModal(resumeModal);
   };
 
   window.deleteResume = (id) => {
@@ -1371,7 +1383,7 @@
     
     document.getElementById('view-resume-title').textContent = resume.name;
     document.getElementById('view-resume-content').value = resume.content;
-    document.getElementById('view-resume-modal').classList.add('show');
+    showModal(document.getElementById('view-resume-modal'));
   };
 
   function resetTailorModal() {
@@ -1385,7 +1397,7 @@
     populateResumeSelector();
     document.getElementById('tailor-resume-select').value = id;
     document.getElementById('tailor-job-desc').value = '';
-    tailorModal.classList.add('show');
+    showModal(tailorModal);
   };
 
   window.tailorFromJob = (jobId) => {
@@ -1396,7 +1408,7 @@
     populateResumeSelector();
     const jobDesc = `${job.title} at ${job.company}\n\n${job.description || ''}\n\nRequirements: ${job.requirements || ''}`;
     document.getElementById('tailor-job-desc').value = jobDesc;
-    tailorModal.classList.add('show');
+    showModal(tailorModal);
   };
 
   function populateResumeSelector() {
