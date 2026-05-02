@@ -289,57 +289,6 @@
   .status-offer { background: #ecfaef; color: #1d6e36; }
   .status-rejected { background: #fee5e5; color: #dc2626; }
 
-  .api-key-section {
-    margin-bottom: 16px;
-    padding: 12px;
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-  }
-  .api-key-status {
-    font-size: 12px;
-    color: #666;
-    margin-bottom: 8px;
-  }
-  .api-key-status.set { color: #1d6e36; }
-  .api-key-input-wrapper {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-  .api-key-input-wrapper input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid #d4d4d4;
-    border-radius: 6px;
-    font-size: 14px;
-  }
-  .api-key-options {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    font-size: 12px;
-  }
-  .api-key-options label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-  }
-  .security-warning {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-size: 12px;
-    color: #856404;
-    margin-top: 8px;
-  }
-  .btn-small {
-    padding: 6px 10px;
-    font-size: 12px;
-    border-radius: 6px;
-  }
   .loading {
     opacity: 0.6;
     pointer-events: none;
@@ -606,28 +555,6 @@
 <div id="tailor-modal" class="modal">
   <div class="modal-content" style="max-width: 600px;">
     <h2>AI Resume Tailoring</h2>
-    
-    <div class="api-key-section">
-      <div class="api-key-status" id="api-key-status">API Key: Not set (Demo Mode)</div>
-      <div class="api-key-input-wrapper">
-        <input type="password" id="api-key-input" placeholder="Enter Groq API key (gsk_...)" />
-        <button type="button" class="btn btn-small" id="set-api-key">Set</button>
-        <button type="button" class="btn btn-small" id="clear-api-key" style="display:none;">Clear</button>
-      </div>
-      <div class="api-key-options">
-        <label>
-          <input type="checkbox" id="save-key-option">
-          Remember for this browser
-        </label>
-        <span id="passphrase-wrapper" style="display:none;">
-          <input type="password" id="passphrase-input" placeholder="Passphrase to encrypt" style="width: 150px; padding: 4px 8px; font-size: 12px; border: 1px solid #d4d4d4; border-radius: 4px;">
-        </span>
-      </div>
-      <div class="security-warning" id="security-warning" style="display:none;">
-        ⚠️ Your API key will be stored in this browser. For security, it's encrypted with your passphrase. Never share this HTML file with your key saved.
-      </div>
-    </div>
-    
     <div class="form-group">
       <label>Job Description</label>
       <textarea id="tailor-job-desc" rows="6" placeholder="Paste the job description here..."></textarea>
@@ -649,160 +576,6 @@
   let editingJobId = null;
   let editingResumeId = null;
   let currentTailorResumeId = null;
-
-  // API key management (session-only by default)
-  let sessionApiKey = null; // Stored in memory only, cleared on refresh
-
-  // Encryption functions using Web Crypto API
-  async function encrypt(text, passphrase) {
-    const encoder = new TextEncoder();
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      encoder.encode(passphrase),
-      'PBKDF2',
-      false,
-      ['deriveKey']
-    );
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const key = await crypto.subtle.deriveKey(
-      {
-        name: 'PBKDF2',
-        salt: salt,
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt']
-    );
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv },
-      key,
-      encoder.encode(text)
-    );
-    const combined = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-    combined.set(salt, 0);
-    combined.set(iv, salt.length);
-    combined.set(new Uint8Array(encrypted), salt.length + iv.length);
-    return btoa(String.fromCharCode(...combined));
-  }
-
-  async function decrypt(encoded, passphrase) {
-    try {
-      const combined = new Uint8Array(atob(encoded).split('').map(c => c.charCodeAt(0)));
-      const salt = combined.slice(0, 16);
-      const iv = combined.slice(16, 28);
-      const encrypted = combined.slice(28);
-      const encoder = new TextEncoder();
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        encoder.encode(passphrase),
-        'PBKDF2',
-        false,
-        ['deriveKey']
-      );
-      const key = await crypto.subtle.deriveKey(
-        {
-          name: 'PBKDF2',
-          salt: salt,
-          iterations: 100000,
-          hash: 'SHA-256'
-        },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['decrypt']
-      );
-      const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: iv },
-        key,
-        encrypted
-      );
-      return new TextDecoder().decode(decrypted);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // API key management functions
-  function updateApiKeyStatus() {
-    const statusEl = document.getElementById('api-key-status');
-    const clearBtn = document.getElementById('clear-api-key');
-    if (sessionApiKey) {
-      statusEl.textContent = 'API Key: Set for session';
-      statusEl.classList.add('set');
-      clearBtn.style.display = 'inline-block';
-    } else if (localStorage.getItem('molly-encrypted-api-key')) {
-      statusEl.textContent = 'API Key: Saved (enter passphrase to use)';
-      statusEl.classList.add('set');
-      clearBtn.style.display = 'inline-block';
-    } else {
-      statusEl.textContent = 'API Key: Not set (Demo Mode)';
-      statusEl.classList.remove('set');
-      clearBtn.style.display = 'none';
-    }
-  }
-
-  async function setApiKey() {
-    const keyInput = document.getElementById('api-key-input');
-    const saveOption = document.getElementById('save-key-option');
-    const passphraseInput = document.getElementById('passphrase-input');
-    const key = keyInput.value.trim();
-    
-    if (!key) {
-      alert('Please enter an API key');
-      return;
-    }
-
-    if (saveOption.checked) {
-      const passphrase = passphraseInput.value.trim();
-      if (!passphrase) {
-        alert('Please enter a passphrase to encrypt your API key');
-        return;
-      }
-      const encrypted = await encrypt(key, passphrase);
-      localStorage.setItem('molly-encrypted-api-key', encrypted);
-      sessionApiKey = key;
-    } else {
-      sessionApiKey = key;
-      localStorage.removeItem('molly-encrypted-api-key');
-    }
-
-    keyInput.value = '';
-    passphraseInput.value = '';
-    saveOption.checked = false;
-    document.getElementById('passphrase-wrapper').style.display = 'none';
-    document.getElementById('security-warning').style.display = 'none';
-    updateApiKeyStatus();
-  }
-
-  async function loadEncryptedApiKey() {
-    const encrypted = localStorage.getItem('molly-encrypted-api-key');
-    if (!encrypted) return null;
-    
-    const passphrase = prompt('Enter your passphrase to decrypt your API key:');
-    if (!passphrase) return null;
-    
-    const decrypted = await decrypt(encrypted, passphrase);
-    if (decrypted) {
-      sessionApiKey = decrypted;
-      updateApiKeyStatus();
-      return decrypted;
-    } else {
-      alert('Incorrect passphrase');
-      return null;
-    }
-  }
-
-  function clearApiKey() {
-    sessionApiKey = null;
-    localStorage.removeItem('molly-encrypted-api-key');
-    document.getElementById('api-key-input').value = '';
-    document.getElementById('passphrase-input').value = '';
-    updateApiKeyStatus();
-  }
 
   // Initial jobs from the original HTML
   if (jobs.length === 0) {
@@ -1021,27 +794,9 @@
   const tailorModal = document.getElementById('tailor-modal');
   const cancelTailorBtn = document.getElementById('cancel-tailor');
   const doTailorBtn = document.getElementById('do-tailor');
-  const setApiKeyBtn = document.getElementById('set-api-key');
-  const clearApiKeyBtn = document.getElementById('clear-api-key');
-  const saveKeyOption = document.getElementById('save-key-option');
 
   cancelTailorBtn.addEventListener('click', () => {
     tailorModal.classList.remove('show');
-  });
-
-  // API key management event listeners
-  setApiKeyBtn.addEventListener('click', setApiKey);
-  clearApiKeyBtn.addEventListener('click', clearApiKey);
-  saveKeyOption.addEventListener('change', (e) => {
-    const passphraseWrapper = document.getElementById('passphrase-wrapper');
-    const securityWarning = document.getElementById('security-warning');
-    if (e.target.checked) {
-      passphraseWrapper.style.display = 'inline-block';
-      securityWarning.style.display = 'block';
-    } else {
-      passphraseWrapper.style.display = 'none';
-      securityWarning.style.display = 'none';
-    }
   });
 
   doTailorBtn.addEventListener('click', async () => {
@@ -1053,26 +808,12 @@
       return;
     }
 
-    // Check if API key is available
-    let apiKey = sessionApiKey;
-    if (!apiKey && localStorage.getItem('molly-encrypted-api-key')) {
-      apiKey = await loadEncryptedApiKey();
-    }
-
-    if (!apiKey) {
-      // Fall back to demo mode
-      const tailored = demoTailor(resume.content, jobDesc);
-      document.getElementById('tailor-result').textContent = tailored;
-      document.getElementById('tailor-result').style.display = 'block';
-      return;
-    }
-
-    // Use real Groq API
+    // Use serverless function
     doTailorBtn.classList.add('loading');
     doTailorBtn.textContent = 'Tailoring...';
     
     try {
-      const tailored = await tailorWithGroq(resume.content, jobDesc, apiKey);
+      const tailored = await tailorWithGroq(resume.content, jobDesc);
       document.getElementById('tailor-result').textContent = tailored;
       document.getElementById('tailor-result').style.display = 'block';
     } catch (error) {
@@ -1087,37 +828,25 @@
     }
   });
 
-  async function tailorWithGroq(resumeContent, jobDescription, apiKey) {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  async function tailorWithGroq(resumeContent, jobDescription) {
+    const response = await fetch('/api/tailor', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert resume writer. Tailor the given resume to match the job description. Highlight relevant skills and experience that match the job requirements. Keep the resume professional and well-structured.'
-          },
-          {
-            role: 'user',
-            content: `Job Description:\n${jobDescription}\n\nCurrent Resume:\n${resumeContent}\n\nPlease tailor this resume to better match the job description.`
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 4096
+        resumeContent,
+        jobDescription
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'API request failed');
+      throw new Error(error.error || 'API request failed');
     }
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    return data.result;
   }
 
   function demoTailor(resumeContent, jobDescription) {
@@ -1307,7 +1036,6 @@
 
   // Initial render
   renderJobs();
-  updateApiKeyStatus();
 </script>
 
 </body>
