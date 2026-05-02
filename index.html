@@ -312,89 +312,78 @@
     opacity: 0.6;
     pointer-events: none;
   }
-  .highlight-change {
-    background-color: #fff3cd;
-    padding: 2px 4px;
-    border-radius: 3px;
-    font-weight: 600;
-  }
-  .diff-added {
-    background-color: #d4edda;
-    padding: 2px 4px;
-    border-radius: 3px;
-  }
-  .diff-removed {
-    background-color: #f8d7da;
-    padding: 2px 4px;
-    border-radius: 3px;
-    text-decoration: line-through;
-  }
-  .diff-modified {
-    background-color: #fff3cd;
-    padding: 2px 4px;
-    border-radius: 3px;
-  }
-  .side-by-side-container {
+  .highlight-change { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+  .diff-added { background-color: #d4edda; padding: 1px 3px; border-radius: 2px; }
+  .diff-removed { background-color: #f8d7da; padding: 1px 3px; border-radius: 2px; text-decoration: line-through; }
+  .diff-modified { background-color: #fff3cd; padding: 1px 3px; border-radius: 2px; }
+
+  .tailor-toolbar {
     display: flex;
-    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e5e5e5;
     margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
   }
-  .side-by-side-pane {
-    flex: 1;
+  .tailor-tabs {
     display: flex;
-    flex-direction: column;
+    gap: 4px;
   }
-  .side-by-side-pane h4 {
-    margin: 0 0 8px 0;
-    font-size: 13px;
-    color: #666;
-  }
-  .side-by-side-content {
-    flex: 1;
-    padding: 12px;
-    background: #fafafa;
-    border: 1px solid #d4d4d4;
+  .tailor-tab {
+    padding: 5px 14px;
+    border: none;
+    background: #f0f0f0;
     border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    transition: all 0.15s;
+  }
+  .tailor-tab:hover { background: #e0e0e0; }
+  .tailor-tab.active { background: #1a1a1a; color: white; }
+  .tailor-actions {
+    display: flex;
+    gap: 6px;
+  }
+  .tailor-actions .btn { font-size: 12px; padding: 5px 12px; }
+  .tailor-pane {
+    padding: 12px;
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
     white-space: pre-wrap;
-    font-family: monospace;
+    font-family: 'SF Mono', 'Menlo', monospace;
     font-size: 13px;
-    line-height: 1.4;
-    max-height: 300px;
+    line-height: 1.5;
+    height: calc(60vh - 120px);
+    min-height: 250px;
     overflow-y: auto;
+  }
+  .tailor-pane textarea {
+    width: 100%; height: 100%; border: none; resize: none; outline: none;
+    font-family: inherit; font-size: inherit; line-height: inherit; background: transparent;
   }
   .score-badge {
     display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
+    padding: 3px 10px;
+    border-radius: 10px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13px;
   }
   .score-high { background: #d4edda; color: #155724; }
   .score-medium { background: #fff3cd; color: #856404; }
   .score-low { background: #f8d7da; color: #721c24; }
-  .keyword-analysis {
-    margin-bottom: 12px;
-    padding: 12px;
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-  }
-  .keyword-match {
-    display: inline-block;
-    padding: 2px 8px;
-    margin: 2px;
-    background: #d4edda;
-    border-radius: 12px;
-    font-size: 12px;
-  }
-  .keyword-missing {
-    display: inline-block;
-    padding: 2px 8px;
-    margin: 2px;
-    background: #f8d7da;
-    border-radius: 12px;
-    font-size: 12px;
-  }
+  .keyword-chip { display: inline-block; padding: 1px 7px; margin: 1px; border-radius: 10px; font-size: 11px; }
+  .keyword-chip.match { background: #d4edda; color: #155724; }
+  .keyword-chip.miss { background: #f8d7da; color: #721c24; }
+  .keyword-row { margin-top: 6px; line-height: 1.8; }
+  .side-by-side { display: flex; gap: 12px; height: calc(60vh - 120px); min-height: 250px; }
+  .side-by-side > div { flex: 1; display: flex; flex-direction: column; }
+  .side-by-side > div > label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 4px; font-weight: 600; }
+  .side-by-side > div > .tailor-pane { flex: 1; height: auto; }
 </style>
 </head>
 <body>
@@ -673,68 +662,57 @@
 
 <!-- Tailor Modal -->
 <div id="tailor-modal" class="modal">
-  <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
-    <h2>AI Resume Tailoring</h2>
-    <div class="form-group">
-      <label>Select Resume</label>
-      <select id="tailor-resume-select">
-        <option value="">-- Choose a resume --</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Job Description</label>
-      <textarea id="tailor-job-desc" rows="6" placeholder="Paste the job description here..."></textarea>
-    </div>
-    <div class="modal-actions" id="tailor-input-actions">
-      <button type="button" class="btn" id="cancel-tailor">Close</button>
-      <button type="button" class="btn primary" id="do-tailor">Tailor with AI</button>
-    </div>
-    <div id="tailor-result" class="tailor-result" style="display:none;">
-      <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-        <div style="display: flex; gap: 8px; align-items: center;">
-          <strong>Match Score: </strong>
-          <span id="match-score" class="score-badge score-medium">Calculating...</span>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn" id="tab-highlighted" style="font-size: 12px; padding: 4px 12px;">Highlighted</button>
-          <button type="button" class="btn" id="tab-sidebyside" style="font-size: 12px; padding: 4px 12px;">Side-by-Side</button>
-          <button type="button" class="btn" id="tab-plain" style="font-size: 12px; padding: 4px 12px;">Plain Text</button>
-        </div>
+  <div class="modal-content" style="max-width: 960px; height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+    <div id="tailor-input-section">
+      <h2 style="margin: 0 0 12px 0;">AI Resume Tailoring</h2>
+      <div class="form-group">
+        <label>Select Resume</label>
+        <select id="tailor-resume-select"><option value="">-- Choose a resume --</option></select>
       </div>
-      
-      <div id="keyword-analysis" class="keyword-analysis" style="display:none; margin-bottom: 8px;">
-        <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-          <div><strong>Matched:</strong> <span id="keyword-matches"></span></div>
-          <div><strong>Missing:</strong> <span id="keyword-missing"></span></div>
+      <div class="form-group">
+        <label>Job Description</label>
+        <textarea id="tailor-job-desc" rows="4" placeholder="Paste the job description here..."></textarea>
+      </div>
+      <div class="modal-actions" id="tailor-input-actions">
+        <button type="button" class="btn" id="cancel-tailor">Close</button>
+        <button type="button" class="btn primary" id="do-tailor">Tailor with AI</button>
+      </div>
+    </div>
+    <div id="tailor-result" style="display:none; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+      <div class="tailor-toolbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="match-score" class="score-badge score-medium"></span>
+          <span id="keyword-summary" style="font-size: 12px; color: #888;"></span>
+        </div>
+        <div class="tailor-tabs">
+          <button type="button" class="tailor-tab active" id="tab-highlighted">Changes</button>
+          <button type="button" class="tailor-tab" id="tab-sidebyside">Compare</button>
+          <button type="button" class="tailor-tab" id="tab-plain">Edit</button>
         </div>
       </div>
 
-      <div id="tab-highlighted-content" style="display: block;">
-        <div id="tailor-result-highlighted" style="padding: 12px; background: #fafafa; border: 1px solid #d4d4d4; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.4; height: 400px; overflow-y: auto;"></div>
+      <div id="tab-highlighted-content" style="flex: 1; overflow: hidden;">
+        <div id="tailor-result-highlighted" class="tailor-pane"></div>
       </div>
-
-      <div id="tab-sidebyside-content" style="display: none;">
-        <div class="side-by-side-container" style="height: 400px;">
-          <div class="side-by-side-pane">
-            <h4>Original</h4>
-            <div id="original-resume" class="side-by-side-content"></div>
-          </div>
-          <div class="side-by-side-pane">
-            <h4>Tailored</h4>
-            <div id="tailored-resume" class="side-by-side-content"></div>
-          </div>
+      <div id="tab-sidebyside-content" style="display:none; flex: 1; overflow: hidden;">
+        <div class="side-by-side">
+          <div><label>Original</label><div id="original-resume" class="tailor-pane"></div></div>
+          <div><label>Tailored</label><div id="tailored-resume" class="tailor-pane"></div></div>
         </div>
       </div>
-
-      <div id="tab-plain-content" style="display: none;">
-        <textarea id="tailor-result-text" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
+      <div id="tab-plain-content" style="display:none; flex: 1; overflow: hidden;">
+        <div class="tailor-pane" style="padding: 0;"><textarea id="tailor-result-text"></textarea></div>
       </div>
-      
-      <div class="modal-actions" style="margin-top: 12px;">
-        <button type="button" class="btn" id="copy-to-clipboard">Copy</button>
-        <button type="button" class="btn" id="download-txt">Download</button>
-        <button type="button" class="btn" id="close-tailor-result">Close</button>
-        <button type="button" class="btn primary" id="save-tailored-resume">Save</button>
+
+      <div class="tailor-toolbar" style="border-bottom: none; border-top: 1px solid #e5e5e5; margin-bottom: 0; margin-top: 8px; padding-top: 8px;">
+        <div class="tailor-actions">
+          <button type="button" class="btn" id="copy-to-clipboard">Copy</button>
+          <button type="button" class="btn" id="download-txt">Download</button>
+        </div>
+        <div class="tailor-actions">
+          <button type="button" class="btn" id="close-tailor-result">Close</button>
+          <button type="button" class="btn primary" id="save-tailored-resume">Save as Resume</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1066,6 +1044,8 @@
   });
 
   closeTailorResultBtn.addEventListener('click', () => {
+    document.getElementById('tailor-result').style.display = 'none';
+    document.getElementById('tailor-input-section').style.display = 'block';
     tailorModal.classList.remove('show');
   });
 
@@ -1076,20 +1056,20 @@
     document.getElementById('tab-plain-content').style.display = 'none';
     
     // Reset all tab buttons
-    tabHighlightedBtn.style.background = '';
-    tabSideBySideBtn.style.background = '';
-    tabPlainBtn.style.background = '';
+    tabHighlightedBtn.classList.remove('active');
+    tabSideBySideBtn.classList.remove('active');
+    tabPlainBtn.classList.remove('active');
     
     // Show selected tab
     if (tab === 'highlighted') {
-      document.getElementById('tab-highlighted-content').style.display = 'block';
-      tabHighlightedBtn.style.background = '#e0e0e0';
+      document.getElementById('tab-highlighted-content').style.display = 'flex';
+      tabHighlightedBtn.classList.add('active');
     } else if (tab === 'sidebyside') {
-      document.getElementById('tab-sidebyside-content').style.display = 'block';
-      tabSideBySideBtn.style.background = '#e0e0e0';
+      document.getElementById('tab-sidebyside-content').style.display = 'flex';
+      tabSideBySideBtn.classList.add('active');
     } else if (tab === 'plain') {
-      document.getElementById('tab-plain-content').style.display = 'block';
-      tabPlainBtn.style.background = '#e0e0e0';
+      document.getElementById('tab-plain-content').style.display = 'flex';
+      tabPlainBtn.classList.add('active');
     }
   }
 
@@ -1171,15 +1151,12 @@
       
       // Analyze keywords
       const { matches, missing } = analyzeKeywords(resume.content, plainText, jobDesc);
-      const keywordAnalysis = document.getElementById('keyword-analysis');
+      const keywordSummary = document.getElementById('keyword-summary');
       if (matches.length > 0 || missing.length > 0) {
-        keywordAnalysis.style.display = 'block';
-        document.getElementById('keyword-matches').innerHTML = 
-          '<strong>Matched:</strong> ' + matches.slice(0, 10).map(w => `<span class="keyword-match">${w}</span>`).join('');
-        document.getElementById('keyword-missing').innerHTML = 
-          '<strong>Missing:</strong> ' + missing.slice(0, 10).map(w => `<span class="keyword-missing">${w}</span>`).join('');
+        keywordSummary.innerHTML = matches.slice(0, 6).map(w => `<span class="keyword-chip match">${w}</span>`).join('') +
+          missing.slice(0, 4).map(w => `<span class="keyword-chip miss">${w}</span>`).join('');
       } else {
-        keywordAnalysis.style.display = 'none';
+        keywordSummary.innerHTML = '';
       }
       
       // Apply diff visualization for side-by-side view
@@ -1193,8 +1170,8 @@
       // Initialize tab to highlighted view
       switchTab('highlighted');
       
-      document.getElementById('tailor-result').style.display = 'block';
-      document.getElementById('tailor-input-actions').style.display = 'none';
+      document.getElementById('tailor-input-section').style.display = 'none';
+      document.getElementById('tailor-result').style.display = 'flex';
     } catch (error) {
       alert('Error tailoring resume: ' + error.message);
       // Fall back to demo mode on error
@@ -1204,8 +1181,8 @@
       document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
       switchTab('highlighted');
-      document.getElementById('tailor-result').style.display = 'block';
-      document.getElementById('tailor-input-actions').style.display = 'none';
+      document.getElementById('tailor-input-section').style.display = 'none';
+      document.getElementById('tailor-result').style.display = 'flex';
     } finally {
       doTailorBtn.classList.remove('loading');
       doTailorBtn.textContent = 'Tailor with AI';
@@ -1501,7 +1478,7 @@
     document.getElementById('tailor-resume-select').value = id;
     document.getElementById('tailor-job-desc').value = '';
     document.getElementById('tailor-result').style.display = 'none';
-    document.getElementById('tailor-input-actions').style.display = 'flex';
+    document.getElementById('tailor-input-section').style.display = 'block';
     tailorModal.classList.add('show');
   };
 
@@ -1513,7 +1490,7 @@
     const jobDesc = `${job.title} at ${job.company}\n\n${job.description || ''}\n\nRequirements: ${job.requirements || ''}`;
     document.getElementById('tailor-job-desc').value = jobDesc;
     document.getElementById('tailor-result').style.display = 'none';
-    document.getElementById('tailor-input-actions').style.display = 'flex';
+    document.getElementById('tailor-input-section').style.display = 'block';
     tailorModal.classList.add('show');
   };
 
