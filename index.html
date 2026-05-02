@@ -6,7 +6,6 @@
 <title>Molly's Promotion-Level Job Search</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/diff-match-patch/1.0.6/diff-match-patch.min.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -1262,21 +1261,29 @@
   }
 
   function applyDiffVisualization(original, tailored) {
-    const dmp = new diff_match_patch();
-    const diffs = dmp.diff_main(original, tailored);
-    dmp.diff_cleanupSemantic(diffs);
+    // Simple line-by-line comparison without external library
+    const originalLines = original.split('\n');
+    const tailoredLines = tailored.split('\n');
+    const maxLines = Math.max(originalLines.length, tailoredLines.length);
     
     let html = '';
-    diffs.forEach(diff => {
-      const text = diff[1].replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      if (diff[0] === -1) {
-        html += `<span class="diff-removed">${text}</span>`;
-      } else if (diff[0] === 1) {
-        html += `<span class="diff-added">${text}</span>`;
+    for (let i = 0; i < maxLines; i++) {
+      const origLine = originalLines[i] || '';
+      const tailoredLine = tailoredLines[i] || '';
+      
+      if (origLine !== tailoredLine) {
+        const text = tailoredLine.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        if (origLine === '') {
+          html += `<span class="diff-added">${text}</span>\n`;
+        } else if (tailoredLine === '') {
+          html += `<span class="diff-removed">${origLine.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>\n`;
+        } else {
+          html += `<span class="diff-modified">${text}</span>\n`;
+        }
       } else {
-        html += text;
+        html += tailoredLine.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '\n';
       }
-    });
+    }
     
     return html;
   }
