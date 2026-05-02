@@ -212,9 +212,9 @@
     background: white;
     border-radius: 12px;
     padding: 24px;
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
+    max-width: 560px;
+    width: 92%;
+    max-height: 85vh;
     overflow-y: auto;
   }
   .modal h2 { margin: 0 0 16px; font-size: 18px; }
@@ -647,12 +647,11 @@
 
 <!-- View Resume Modal -->
 <div id="view-resume-modal" class="modal">
-  <div class="modal-content" style="max-width: 800px;">
-    <h2 id="view-resume-title">Resume</h2>
-    <div class="form-group">
-      <textarea id="view-resume-content" rows="25" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;" readonly></textarea>
-    </div>
-    <div class="modal-actions">
+  <div class="modal-content" style="max-width: 680px; height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
+    <h2 id="view-resume-title" style="flex-shrink: 0;">Resume</h2>
+    <div style="flex: 1; overflow-y: auto; padding: 14px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: #333;" id="view-resume-content-display"></div>
+    <textarea id="view-resume-content" style="display:none;" readonly></textarea>
+    <div class="modal-actions" style="flex-shrink: 0;">
       <button type="button" class="btn" id="close-view-resume">Close</button>
     </div>
   </div>
@@ -660,7 +659,7 @@
 
 <!-- Tailor Modal -->
 <div id="tailor-modal" class="modal">
-  <div class="modal-content" style="max-width: 720px; height: 85vh; display: flex; flex-direction: column; overflow: hidden;">
+  <div class="modal-content" style="max-width: 680px; height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
 
     <div id="tailor-input-section">
       <h2 style="margin: 0 0 4px 0;">Tailor Your Resume</h2>
@@ -1383,6 +1382,7 @@
     
     document.getElementById('view-resume-title').textContent = resume.name;
     document.getElementById('view-resume-content').value = resume.content;
+    document.getElementById('view-resume-content-display').textContent = resume.content;
     showModal(document.getElementById('view-resume-modal'));
   };
 
