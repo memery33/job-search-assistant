@@ -566,7 +566,7 @@
 
 <!-- Tailor Modal -->
 <div id="tailor-modal" class="modal">
-  <div class="modal-content" style="max-width: 600px;">
+  <div class="modal-content" style="max-width: 800px;">
     <h2>AI Resume Tailoring</h2>
     <div class="form-group">
       <label>Select Resume</label>
@@ -578,11 +578,20 @@
       <label>Job Description</label>
       <textarea id="tailor-job-desc" rows="6" placeholder="Paste the job description here..."></textarea>
     </div>
-    <div class="modal-actions">
+    <div class="modal-actions" id="tailor-input-actions">
       <button type="button" class="btn" id="cancel-tailor">Cancel</button>
       <button type="button" class="btn primary" id="do-tailor">Tailor with AI</button>
     </div>
-    <div id="tailor-result" class="tailor-result" style="display:none;"></div>
+    <div id="tailor-result" class="tailor-result" style="display:none;">
+      <div style="margin-bottom: 12px;">
+        <strong>Tailored Resume (highlighted changes in yellow):</strong>
+      </div>
+      <textarea id="tailor-result-text" rows="20" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
+      <div class="modal-actions" style="margin-top: 12px;">
+        <button type="button" class="btn" id="close-tailor-result">Close</button>
+        <button type="button" class="btn primary" id="save-tailored-resume">Save as New Resume</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -888,9 +897,39 @@
   const tailorModal = document.getElementById('tailor-modal');
   const cancelTailorBtn = document.getElementById('cancel-tailor');
   const doTailorBtn = document.getElementById('do-tailor');
+  const closeTailorResultBtn = document.getElementById('close-tailor-result');
+  const saveTailoredResumeBtn = document.getElementById('save-tailored-resume');
 
   cancelTailorBtn.addEventListener('click', () => {
     tailorModal.classList.remove('show');
+  });
+
+  closeTailorResultBtn.addEventListener('click', () => {
+    tailorModal.classList.remove('show');
+  });
+
+  saveTailoredResumeBtn.addEventListener('click', () => {
+    const tailoredText = document.getElementById('tailor-result-text').value;
+    const resumeId = document.getElementById('tailor-resume-select').value;
+    const originalResume = resumes.find(r => r.id === resumeId);
+    
+    if (!originalResume) {
+      alert('Please select a resume first');
+      return;
+    }
+
+    const newResume = {
+      id: Date.now().toString(),
+      name: originalResume.name + ' (Tailored)',
+      content: tailoredText,
+      createdAt: new Date().toISOString()
+    };
+
+    resumes.push(newResume);
+    saveResumes();
+    renderResumes();
+    tailorModal.classList.remove('show');
+    alert('Tailored resume saved as a new resume!');
   });
 
   doTailorBtn.addEventListener('click', async () => {
@@ -909,15 +948,18 @@
     
     try {
       const tailored = await tailorWithGroq(resume.content, jobDesc);
-      const highlighted = parseHighlighting(tailored);
-      document.getElementById('tailor-result').innerHTML = highlighted;
+      const plainText = stripHighlighting(tailored);
+      document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result').style.display = 'block';
+      document.getElementById('tailor-input-actions').style.display = 'none';
     } catch (error) {
       alert('Error tailoring resume: ' + error.message);
       // Fall back to demo mode on error
       const tailored = demoTailor(resume.content, jobDesc);
-      document.getElementById('tailor-result').textContent = tailored;
+      const plainText = stripHighlighting(tailored);
+      document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result').style.display = 'block';
+      document.getElementById('tailor-input-actions').style.display = 'none';
     } finally {
       doTailorBtn.classList.remove('loading');
       doTailorBtn.textContent = 'Tailor with AI';
@@ -948,6 +990,11 @@
   function parseHighlighting(text) {
     // Replace **text** with <span class="highlight-change">text</span>
     return text.replace(/\*\*([^*]+)\*\*/g, '<span class="highlight-change">$1</span>');
+  }
+
+  function stripHighlighting(text) {
+    // Remove ** markers to get plain text
+    return text.replace(/\*\*([^*]+)\*\*/g, '$1');
   }
 
   function demoTailor(resumeContent, jobDescription) {
@@ -1134,6 +1181,7 @@
     document.getElementById('tailor-resume-select').value = id;
     document.getElementById('tailor-job-desc').value = '';
     document.getElementById('tailor-result').style.display = 'none';
+    document.getElementById('tailor-input-actions').style.display = 'flex';
     tailorModal.classList.add('show');
   };
 
@@ -1145,6 +1193,7 @@
     const jobDesc = `${job.title} at ${job.company}\n\n${job.description || ''}\n\nRequirements: ${job.requirements || ''}`;
     document.getElementById('tailor-job-desc').value = jobDesc;
     document.getElementById('tailor-result').style.display = 'none';
+    document.getElementById('tailor-input-actions').style.display = 'flex';
     tailorModal.classList.add('show');
   };
 
