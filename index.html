@@ -581,6 +581,19 @@
   </div>
 </div>
 
+<!-- View Resume Modal -->
+<div id="view-resume-modal" class="modal">
+  <div class="modal-content" style="max-width: 800px;">
+    <h2 id="view-resume-title">Resume</h2>
+    <div class="form-group">
+      <textarea id="view-resume-content" rows="25" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;" readonly></textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="close-view-resume">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Tailor Modal -->
 <div id="tailor-modal" class="modal">
   <div class="modal-content" style="max-width: 800px;">
@@ -601,9 +614,13 @@
     </div>
     <div id="tailor-result" class="tailor-result" style="display:none;">
       <div style="margin-bottom: 12px;">
-        <strong>Tailored Resume:</strong>
+        <strong>Tailored Resume (changes highlighted in yellow):</strong>
       </div>
-      <textarea id="tailor-result-text" rows="20" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
+      <div id="tailor-result-highlighted" style="margin-bottom: 12px; padding: 12px; background: #fafafa; border: 1px solid #d4d4d4; border-radius: 6px; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.4; max-height: 300px; overflow-y: auto;"></div>
+      <div style="margin-bottom: 12px;">
+        <strong>Plain text (for saving):</strong>
+      </div>
+      <textarea id="tailor-result-text" rows="15" style="width: 100%; font-family: monospace; font-size: 13px; line-height: 1.4; padding: 12px; border: 1px solid #d4d4d4; border-radius: 6px;"></textarea>
       <div class="modal-actions" style="margin-top: 12px;">
         <button type="button" class="btn" id="close-tailor-result">Close</button>
         <button type="button" class="btn primary" id="save-tailored-resume">Save as New Resume</button>
@@ -857,6 +874,14 @@
     jobModal.classList.remove('show');
   });
 
+  // View resume modal
+  const viewResumeModal = document.getElementById('view-resume-modal');
+  const closeViewResumeBtn = document.getElementById('close-view-resume');
+
+  closeViewResumeBtn.addEventListener('click', () => {
+    viewResumeModal.classList.remove('show');
+  });
+
   // Resume modal
   const resumeModal = document.getElementById('resume-modal');
   const addResumeBtn = document.getElementById('add-resume-btn');
@@ -966,7 +991,9 @@
     try {
       const tailored = await tailorWithGroq(resume.content, jobDesc);
       const plainText = stripHighlighting(tailored);
+      const highlighted = parseHighlighting(tailored);
       document.getElementById('tailor-result-text').value = plainText;
+      document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
       document.getElementById('tailor-result').style.display = 'block';
       document.getElementById('tailor-input-actions').style.display = 'none';
     } catch (error) {
@@ -974,7 +1001,9 @@
       // Fall back to demo mode on error
       const tailored = demoTailor(resume.content, jobDesc);
       const plainText = stripHighlighting(tailored);
+      const highlighted = parseHighlighting(tailored);
       document.getElementById('tailor-result-text').value = plainText;
+      document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
       document.getElementById('tailor-result').style.display = 'block';
       document.getElementById('tailor-input-actions').style.display = 'none';
     } finally {
@@ -1135,6 +1164,7 @@
         <div class="resume-header">
           <div class="resume-name">${resume.name}</div>
           <div>
+            <button class="btn" onclick="viewResume('${resume.id}')">View</button>
             <button class="btn" onclick="editResume('${resume.id}')">Edit</button>
             <button class="btn" onclick="tailorResume('${resume.id}')" style="background: #8a5a00; color: white; border-color: #8a5a00;">✨ Tailor</button>
             <button class="btn" onclick="deleteResume('${resume.id}')" style="color: #dc2626; border-color: #dc2626;">Delete</button>
@@ -1191,6 +1221,15 @@
     resumes = resumes.filter(r => r.id !== id);
     saveResumes();
     renderResumes();
+  };
+
+  window.viewResume = (id) => {
+    const resume = resumes.find(r => r.id === id);
+    if (!resume) return;
+    
+    document.getElementById('view-resume-title').textContent = resume.name;
+    document.getElementById('view-resume-content').value = resume.content;
+    document.getElementById('view-resume-modal').classList.add('show');
   };
 
   window.tailorResume = (id) => {
