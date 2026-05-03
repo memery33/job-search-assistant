@@ -1158,8 +1158,68 @@
       notes: document.getElementById('onboard-notes').value
     };
     await saveProfile(profileData);
-    showApp();
+    await showApp();
+    // Generate AI job suggestions in background
+    generateJobSuggestions(profileData);
   };
+
+  async function generateJobSuggestions(profileData) {
+    // Show loading state
+    const grid = document.getElementById('grid');
+    const empty = document.getElementById('empty');
+    empty.style.display = 'none';
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:40px 20px;">
+        <div class="tailor-loading-state">
+          <div class="loading-spinner"></div>
+          <p>Finding jobs that match your profile...</p>
+          <p>This may take a few seconds</p>
+        </div>
+      </div>`;
+
+    try {
+      const response = await fetch('/api/suggest-jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile: profileData })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to get suggestions');
+      }
+
+      const data = await response.json();
+      const suggestedJobs = data.jobs || [];
+
+      // Save each suggested job to Supabase
+      for (const job of suggestedJobs) {
+        await saveJobToDb({
+          title: job.title || '',
+          company: job.company || '',
+          url: job.url || '',
+          type: job.type || 'full-time',
+          workModel: job.workModel || 'remote',
+          status: 'saved',
+          fitLevel: 'strong',
+          salary: job.salary || '',
+          location: job.location || '',
+          description: job.description || '',
+          requirements: job.requirements || '',
+          fitNotes: job.fitNotes || ''
+        });
+      }
+
+      // Reload and render
+      await loadJobs();
+      renderJobs();
+    } catch (err) {
+      console.error('Job suggestion error:', err);
+      grid.innerHTML = '';
+      empty.innerHTML = 'No AI suggestions available right now. Click "+ Add Job" to start manually!';
+      empty.style.display = 'block';
+    }
+  }
 
   function showOnboarding() {
     document.getElementById('auth-screen').style.display = 'none';
