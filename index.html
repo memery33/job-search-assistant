@@ -6,6 +6,8 @@
 <title>Molly's Promotion-Level Job Search</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -699,7 +701,8 @@
       <div class="tailor-footer">
         <div class="secondary-actions">
           <button type="button" class="btn" id="copy-to-clipboard">Copy</button>
-          <button type="button" class="btn" id="download-txt">Download</button>
+          <button type="button" class="btn" id="download-docx">Word (.docx)</button>
+          <button type="button" class="btn" id="download-pdf">PDF</button>
           <button type="button" class="btn" id="close-tailor-result">Back</button>
         </div>
         <button type="button" class="btn save-btn" id="save-tailored-resume">Save This Resume</button>
@@ -1032,7 +1035,8 @@
   const closeTailorResultBtn = document.getElementById('close-tailor-result');
   const saveTailoredResumeBtn = document.getElementById('save-tailored-resume');
   const copyToClipboardBtn = document.getElementById('copy-to-clipboard');
-  const downloadTxtBtn = document.getElementById('download-txt');
+  const downloadDocxBtn = document.getElementById('download-docx');
+  const downloadPdfBtn = document.getElementById('download-pdf');
 
   cancelTailorBtn.addEventListener('click', () => {
     hideModal(tailorModal);
@@ -1053,15 +1057,129 @@
     }).catch(() => {});
   });
 
-  downloadTxtBtn.addEventListener('click', () => {
+  downloadDocxBtn.addEventListener('click', async () => {
     const text = document.getElementById('tailor-result-text').value;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tailored-resume.txt';
-    a.click();
-    URL.revokeObjectURL(url);
+    const btn = downloadDocxBtn;
+    btn.textContent = 'Generating...';
+    try {
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+      const lines = text.split('\n');
+      const children = [];
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          children.push(new Paragraph({ spacing: { after: 80 } }));
+          continue;
+        }
+        // Detect headings: all caps lines or lines ending with colon
+        const isHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && /[A-Z]/.test(trimmed))
+          || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL)/i.test(trimmed);
+        // Detect bullet points
+        const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(trimmed);
+        // Detect name (first non-empty line, typically)
+        const isFirstLine = children.length === 0;
+
+        if (isFirstLine) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed, bold: true, size: 28, font: 'Calibri' })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 40 }
+          }));
+        } else if (isHeading) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed, bold: true, size: 22, font: 'Calibri', color: '2B579A' })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 80 },
+            border: { bottom: { color: 'D0D0D0', space: 1, style: 'single', size: 6 } }
+          }));
+        } else if (isBullet) {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed.replace(/^[\u2022\u2023\u25E6\-\*]\s/, ''), size: 20, font: 'Calibri' })],
+            bullet: { level: 0 },
+            spacing: { after: 40 }
+          }));
+        } else {
+          children.push(new Paragraph({
+            children: [new TextRun({ text: trimmed, size: 20, font: 'Calibri' })],
+            spacing: { after: 40 }
+          }));
+        }
+      }
+
+      const doc = new Document({
+        sections: [{ properties: {
+          page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } }
+        }, children }]
+      });
+      const blob = await Packer.toBlob(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tailored-resume.docx';
+      a.click();
+      URL.revokeObjectURL(url);
+      btn.textContent = 'Downloaded!';
+      setTimeout(() => { btn.textContent = 'Word (.docx)'; }, 1500);
+    } catch (err) {
+      console.error('DOCX export error:', err);
+      alert('Error generating DOCX: ' + err.message);
+      btn.textContent = 'Word (.docx)';
+    }
+  });
+
+  downloadPdfBtn.addEventListener('click', () => {
+    const text = document.getElementById('tailor-result-text').value;
+    const btn = downloadPdfBtn;
+    btn.textContent = 'Generating...';
+
+    // Build a styled HTML element for PDF rendering
+    const el = document.createElement('div');
+    el.style.cssText = 'font-family: Calibri, Arial, sans-serif; font-size: 11px; line-height: 1.5; color: #222; padding: 0;';
+
+    const lines = text.split('\n');
+    let isFirst = true;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        el.appendChild(Object.assign(document.createElement('div'), { style: 'height: 6px;' }));
+        continue;
+      }
+      const isHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && /[A-Z]/.test(trimmed))
+        || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL)/i.test(trimmed);
+      const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(trimmed);
+
+      const p = document.createElement('div');
+      if (isFirst) {
+        p.style.cssText = 'font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 2px;';
+        p.textContent = trimmed;
+        isFirst = false;
+      } else if (isHeading) {
+        p.style.cssText = 'font-size: 12px; font-weight: 700; color: #2B579A; margin-top: 10px; margin-bottom: 3px; border-bottom: 1px solid #ddd; padding-bottom: 2px;';
+        p.textContent = trimmed;
+      } else if (isBullet) {
+        p.style.cssText = 'margin-left: 16px; margin-bottom: 1px;';
+        p.textContent = trimmed;
+      } else {
+        p.style.cssText = 'margin-bottom: 1px;';
+        p.textContent = trimmed;
+      }
+      el.appendChild(p);
+    }
+
+    html2pdf().set({
+      margin: [0.5, 0.5, 0.5, 0.5],
+      filename: 'tailored-resume.pdf',
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).from(el).save().then(() => {
+      btn.textContent = 'Downloaded!';
+      setTimeout(() => { btn.textContent = 'PDF'; }, 1500);
+    }).catch(err => {
+      console.error('PDF export error:', err);
+      alert('Error generating PDF: ' + err.message);
+      btn.textContent = 'PDF';
+    });
   });
 
   saveTailoredResumeBtn.addEventListener('click', () => {
