@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Molly's Promotion-Level Job Search</title>
+<title>Applyt — AI-Powered Job Search & Resume Tailoring</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -391,15 +392,73 @@
   .template-pick { transition: all 0.15s; }
   .template-pick:hover { border-color: #059669; }
   .template-pick.active { border-color: #059669; background: #ecfdf5; }
+
+  /* Auth screen */
+  .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); }
+  .auth-card { background: white; border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .auth-card h1 { font-size: 28px; margin: 0 0 4px; font-weight: 800; }
+  .auth-card .subtitle { color: #888; margin: 0 0 28px; font-size: 14px; }
+  .auth-card .form-group { margin-bottom: 16px; }
+  .auth-card label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
+  .auth-card input[type="email"], .auth-card input[type="password"] {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; transition: border-color 0.15s;
+  }
+  .auth-card input:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
+  .auth-card .btn-auth { width: 100%; padding: 12px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .auth-card .btn-auth:hover { background: #047857; }
+  .auth-card .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; }
+  .auth-card .auth-toggle { text-align: center; margin-top: 16px; font-size: 13px; color: #888; }
+  .auth-card .auth-toggle a { color: #059669; cursor: pointer; text-decoration: underline; }
+  .auth-card .auth-error { color: #dc2626; font-size: 13px; margin-top: 8px; display: none; }
+  .auth-card .auth-divider { text-align: center; color: #ccc; font-size: 12px; margin: 20px 0; position: relative; }
+  .auth-card .auth-divider::before, .auth-card .auth-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: #e5e5e5; }
+  .auth-card .auth-divider::before { left: 0; }
+  .auth-card .auth-divider::after { right: 0; }
+  .user-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .user-bar .user-email { font-size: 12px; color: #888; }
+  .user-bar .btn-logout { font-size: 12px; color: #dc2626; background: none; border: 1px solid #fca5a5; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <h1>Applyt</h1>
+    <p class="subtitle">AI-powered job search & resume tailoring</p>
+    <form id="auth-form">
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="auth-email" required placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" required placeholder="At least 6 characters" minlength="6">
+      </div>
+      <button type="submit" class="btn-auth" id="auth-submit">Sign Up</button>
+      <div class="auth-error" id="auth-error"></div>
+    </form>
+    <div class="auth-toggle">
+      <span id="auth-toggle-text">Already have an account?</span>
+      <a id="auth-toggle-link">Log in</a>
+    </div>
+  </div>
+</div>
+
+<!-- App (hidden until logged in) -->
+<div class="wrap" id="app-container" style="display:none;">
 
 <header>
-  <h1>Promotion-level roles for Molly</h1>
-  <p>Senior Program Manager and equivalent — med-comms agencies and pharma in-house, US remote.</p>
-  <div class="meta">Track jobs, manage resumes, and tailor with AI. Data saved locally in your browser.</div>
+  <div class="user-bar">
+    <div>
+      <h1>Applyt</h1>
+      <p>Track jobs, manage resumes, and tailor with AI.</p>
+    </div>
+    <div style="text-align:right;">
+      <span class="user-email" id="user-email"></span><br>
+      <button class="btn-logout" id="logout-btn">Log out</button>
+    </div>
+  </div>
 </header>
 
 <div class="nav-tabs">
@@ -411,142 +470,13 @@
   <div class="controls">
     <input type="text" id="search" placeholder="Search role, company, or keyword…" />
     <button class="chip active" data-filter="all">All</button>
-    <button class="chip" data-filter="agency">Agency</button>
-    <button class="chip" data-filter="pharma">Pharma</button>
-    <button class="chip" data-filter="fit-strong">Strongest fit</button>
     <button class="chip" id="add-job-btn" style="background: #1a1a1a; color: white; border-color: #1a1a1a;">+ Add Job</button>
   </div>
 
-<div class="grid" id="grid">
+<div class="grid" id="grid"></div>
 
-  <div class="card" data-type="pharma fit-strong" data-text="apogee therapeutics senior manager scientific communications planning operations remote publications congress mlr ismpp">
-    <div class="card-header">
-      <div>
-        <div class="role">Senior Manager, Scientific Communications, Planning &amp; Operations</div>
-        <div class="company">Apogee Therapeutics</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-        <span class="badge pharma">Pharma</span>
-        <span class="badge fit-strong">Strong fit</span>
-        <span class="badge verified">✓ Live</span>
-      </div>
-    </div>
-    <div class="meta-row">
-      <span>Remote (US)</span>
-      <span>·</span>
-      <span>$155K–$175K</span>
-      <span>·</span>
-      <span>5+ yrs</span>
-    </div>
-    <div class="summary">Supports operational and planning aspects of medical congress and publication activities. Tracks deliverables across publications and congresses; partners with Medical Affairs and cross-functional stakeholders to keep scientific communication compliant. Reports to the Executive Director, Scientific Communications.</div>
-    <div class="reqs"><strong>Requires:</strong> 5+ yrs in med comms / sci comms operations / congress planning, MLR review process knowledge, ISMPP familiarity, hands-on with publications management systems. Up to 10% travel.</div>
-    <div class="fit strong">Maps almost 1:1 to your current scope — publication tracking, status trackers, cross-functional coordination. Pharma in-house pay bump and clear "Senior" title progression. Best overall fit.</div>
-    <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://job-boards.greenhouse.io/apogeetherapeutics/jobs/5078564007">Apply on Greenhouse</a>
-    </div>
-  </div>
+<div id="empty" class="empty">No jobs yet. Click "+ Add Job" to start tracking your applications!</div>
 
-  <div class="card" data-type="agency fit-strong" data-text="precision aq strategic account director medical communications remote publications client services">
-    <div class="card-header">
-      <div>
-        <div class="role">Strategic Account Director, Medical Communications</div>
-        <div class="company">Precision AQ (Precision Medicine Group)</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-        <span class="badge agency">Agency</span>
-        <span class="badge fit-strong">Strong fit</span>
-        <span class="badge verified">✓ Live</span>
-      </div>
-    </div>
-    <div class="meta-row">
-      <span>Remote (US)</span>
-      <span>·</span>
-      <span>$107K–$160K</span>
-    </div>
-    <div class="summary">Day-to-day strategic advisor to the client. Owns delivery against budget and timelines, generates revenue, leads internal teams to maximize client effectiveness. Direct people leadership over a med-comms account team.</div>
-    <div class="reqs"><strong>Requires:</strong> Med-comms agency experience, client-facing leadership, financial/budget ownership, ability to lead a project team.</div>
-    <div class="fit strong">Strong promotion path — same agency model as ApotheCom but with full account ownership and team leadership. Pay range likely matches/exceeds your current band.</div>
-    <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://job-boards.greenhouse.io/precisionmedicinegroup/jobs/5710460004">Apply on Greenhouse</a>
-    </div>
-  </div>
-
-  <div class="card" data-type="agency" data-text="precision aq strategic account manager medical communications remote new publications">
-    <div class="card-header">
-      <div>
-        <div class="role">Strategic Account Manager, Medical Communications <span style="background:#fde0a0;color:#7a4f00;font-size:10px;padding:1px 5px;border-radius:3px;margin-left:4px;">NEW</span></div>
-        <div class="company">Precision AQ (Precision Medicine Group)</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-        <span class="badge agency">Agency</span>
-        <span class="badge verified">✓ Live</span>
-      </div>
-    </div>
-    <div class="meta-row">
-      <span>Remote (US)</span>
-      <span>·</span>
-      <span>$79K–$119K</span>
-    </div>
-    <div class="summary">First line of support to the Strategic Account Director. Manages projects under a SAD's direction, with explicit pathway to becoming a SAD with own book of business. Built-in promotion progression.</div>
-    <div class="reqs"><strong>Requires:</strong> Bachelor's degree, med-comms project management experience, client relationship skills.</div>
-    <div class="fit medium">A strong stepping stone if the SAD role above feels like a stretch. Pay band is below the SAD posting, so flag if applying — likely better as a fall-back than a primary target.</div>
-    <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://job-boards.greenhouse.io/precisionmedicinegroup/jobs/5976872004">Apply on Greenhouse</a>
-    </div>
-  </div>
-
-  <div class="card" data-type="agency" data-text="real chemistry account manager senior med affairs publications remote scientific medical">
-    <div class="card-header">
-      <div>
-        <div class="role">Account Manager / Senior Account Manager, Med Affairs</div>
-        <div class="company">Real Chemistry</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-        <span class="badge agency">Agency</span>
-        <span class="badge verified">✓ Live</span>
-      </div>
-    </div>
-    <div class="meta-row">
-      <span>Remote (US) or hybrid</span>
-      <span>·</span>
-      <span>Boston / Carmel / Chicago / NJ</span>
-    </div>
-    <div class="summary">Day-to-day client lead for Scientific &amp; Medical Affairs. Owns expectations, delivery, and the relationship across publications and med info workstreams. Posting hires at AM or Sr AM level — apply at the senior level.</div>
-    <div class="reqs"><strong>Requires:</strong> Healthcare agency client services experience, med affairs / publications / med info background.</div>
-    <div class="fit medium">Dual-level posting, so they may title you at AM rather than Sr AM. Worth applying with a clear ask for the Senior level given your years of experience.</div>
-    <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://job-boards.greenhouse.io/realchemistry/jobs/5054800008">Apply on Greenhouse</a>
-    </div>
-  </div>
-
-  <div class="card" data-type="agency" data-text="apothecom inizio internal promotion senior program manager publications client services merck genitourinary">
-    <div class="card-header">
-      <div>
-        <div class="role">Senior Program Manager (internal move)</div>
-        <div class="company">ApotheCom, an Inizio Company</div>
-      </div>
-      <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-        <span class="badge agency">Agency</span>
-      </div>
-    </div>
-    <div class="meta-row">
-      <span>Remote / hybrid</span>
-      <span>·</span>
-      <span>Internal mobility</span>
-    </div>
-    <div class="summary">No external posting right now — ApotheCom's public board only shows a Senior Medical Writer in the UK. The Senior Program Manager track exists internally and is the fastest promotion path.</div>
-    <div class="reqs"><strong>Approach:</strong> Bring this title to your next 1:1 with your director. You already own the Merck Genitourinary work end-to-end and have the financial, training, and stakeholder-management responsibilities of a Sr PM.</div>
-    <div class="fit note">Often the cheapest, fastest promotion. Worth running this conversation in parallel with external applications.</div>
-    <div class="actions">
-      <a class="btn primary" target="_blank" rel="noopener" href="https://job-boards.greenhouse.io/apothecom">View ApotheCom board</a>
-    </div>
-  </div>
-
-</div>
-
-<div id="empty" class="empty" style="display:none;">No roles match those filters. Try clearing the search or selecting "All".</div>
-
-</div>
 </div>
 
 <div id="resumes-section" class="resume-section">
@@ -635,7 +565,7 @@
     <form id="resume-form">
       <div class="form-group">
         <label>Resume Name *</label>
-        <input type="text" id="resume-name" required placeholder="e.g., Base Resume - Molly">
+        <input type="text" id="resume-name" required placeholder="e.g., Software Engineer Resume">
       </div>
       <div class="form-group">
         <label>Upload Resume (PDF, DOCX, or TXT)</label>
@@ -782,11 +712,17 @@
 </div>
 
 <script>
-  // Data storage
-  let jobs = JSON.parse(localStorage.getItem('molly-jobs') || '[]');
-  let resumes = JSON.parse(localStorage.getItem('molly-resumes') || '[]');
+  // Supabase client
+  const SUPABASE_URL = 'https://zdrtsrkokttzqpaetznp.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkcnRzcmtva3R0enFwYWV0em5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NzA1MjEsImV4cCI6MjA5MzM0NjUyMX0.jPBr0fwJC0y_94Vu99vsbm6c7np7xPM5fWqZrQrTpZE';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // App state
+  let jobs = [];
+  let resumes = [];
   let editingJobId = null;
   let editingResumeId = null;
+  let currentUser = null;
 
   // Modal scroll lock helpers
   function showModal(modal) {
@@ -797,6 +733,225 @@
     modal.classList.remove('show');
     document.body.classList.remove('modal-open');
   }
+
+  // ========== AUTH ==========
+  let isSignUp = true;
+  const authForm = document.getElementById('auth-form');
+  const authSubmit = document.getElementById('auth-submit');
+  const authError = document.getElementById('auth-error');
+  const authToggleLink = document.getElementById('auth-toggle-link');
+  const authToggleText = document.getElementById('auth-toggle-text');
+
+  authToggleLink.addEventListener('click', () => {
+    isSignUp = !isSignUp;
+    authSubmit.textContent = isSignUp ? 'Sign Up' : 'Log In';
+    authToggleText.textContent = isSignUp ? 'Already have an account?' : "Don't have an account?";
+    authToggleLink.textContent = isSignUp ? 'Log in' : 'Sign up';
+    authError.style.display = 'none';
+  });
+
+  authForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    authError.style.display = 'none';
+    authSubmit.disabled = true;
+    authSubmit.textContent = isSignUp ? 'Creating account...' : 'Logging in...';
+
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+
+    try {
+      let result;
+      if (isSignUp) {
+        result = await supabase.auth.signUp({ email, password });
+      } else {
+        result = await supabase.auth.signInWithPassword({ email, password });
+      }
+
+      if (result.error) throw result.error;
+
+      if (isSignUp && result.data?.user && !result.data.session) {
+        authError.textContent = 'Check your email to confirm your account, then log in.';
+        authError.style.color = '#059669';
+        authError.style.display = 'block';
+        isSignUp = false;
+        authSubmit.textContent = 'Log In';
+        authToggleText.textContent = "Don't have an account?";
+        authToggleLink.textContent = 'Sign up';
+      }
+    } catch (err) {
+      authError.textContent = err.message || 'Authentication failed';
+      authError.style.color = '#dc2626';
+      authError.style.display = 'block';
+    } finally {
+      authSubmit.disabled = false;
+      if (authSubmit.textContent.includes('...')) {
+        authSubmit.textContent = isSignUp ? 'Sign Up' : 'Log In';
+      }
+    }
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    // Auth state change listener will handle UI
+  });
+
+  // Listen for auth state changes
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      currentUser = session.user;
+      document.getElementById('auth-screen').style.display = 'none';
+      document.getElementById('app-container').style.display = 'block';
+      document.getElementById('user-email').textContent = currentUser.email;
+
+      // Migrate localStorage data if any
+      await migrateLocalData();
+
+      // Load data from Supabase
+      await loadJobs();
+      await loadResumes();
+      renderJobs();
+      renderResumes();
+    } else {
+      currentUser = null;
+      document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+      jobs = [];
+      resumes = [];
+    }
+  });
+
+  // ========== DATA MIGRATION ==========
+  async function migrateLocalData() {
+    const localJobs = JSON.parse(localStorage.getItem('molly-jobs') || '[]');
+    const localResumes = JSON.parse(localStorage.getItem('molly-resumes') || '[]');
+
+    if (localJobs.length > 0) {
+      for (const job of localJobs) {
+        await supabase.from('jobs').upsert({
+          id: undefined,
+          user_id: currentUser.id,
+          title: job.title,
+          company: job.company,
+          url: job.url || '',
+          type: job.type || 'full-time',
+          status: job.status || 'saved',
+          fit_level: job.fitLevel || '',
+          salary: job.salary || '',
+          location: job.location || '',
+          description: job.description || '',
+          requirements: job.requirements || '',
+          fit_notes: job.fitNotes || ''
+        });
+      }
+      localStorage.removeItem('molly-jobs');
+    }
+
+    if (localResumes.length > 0) {
+      for (const resume of localResumes) {
+        await supabase.from('resumes').insert({
+          user_id: currentUser.id,
+          name: resume.name,
+          content: resume.content || '',
+          highlighted_html: resume.highlightedHtml || '',
+          original_id: null
+        });
+      }
+      localStorage.removeItem('molly-resumes');
+    }
+  }
+
+  // ========== SUPABASE CRUD ==========
+  async function loadJobs() {
+    const { data, error } = await supabase.from('jobs').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (error) { console.error('Error loading jobs:', error); return; }
+    jobs = (data || []).map(j => ({
+      id: j.id,
+      title: j.title,
+      company: j.company,
+      url: j.url,
+      type: j.type,
+      status: j.status,
+      fitLevel: j.fit_level,
+      salary: j.salary,
+      location: j.location,
+      description: j.description,
+      requirements: j.requirements,
+      fitNotes: j.fit_notes
+    }));
+  }
+
+  async function loadResumes() {
+    const { data, error } = await supabase.from('resumes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    if (error) { console.error('Error loading resumes:', error); return; }
+    resumes = (data || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      content: r.content,
+      highlightedHtml: r.highlighted_html,
+      originalId: r.original_id,
+      createdAt: r.created_at
+    }));
+  }
+
+  async function saveJobToDb(jobData) {
+    const row = {
+      user_id: currentUser.id,
+      title: jobData.title,
+      company: jobData.company,
+      url: jobData.url || '',
+      type: jobData.type || 'full-time',
+      status: jobData.status || 'saved',
+      fit_level: jobData.fitLevel || '',
+      salary: jobData.salary || '',
+      location: jobData.location || '',
+      description: jobData.description || '',
+      requirements: jobData.requirements || '',
+      fit_notes: jobData.fitNotes || ''
+    };
+
+    if (jobData.id && typeof jobData.id === 'string' && jobData.id.includes('-')) {
+      // UUID — update existing
+      const { error } = await supabase.from('jobs').update(row).eq('id', jobData.id);
+      if (error) console.error('Error updating job:', error);
+    } else {
+      // Insert new
+      const { data, error } = await supabase.from('jobs').insert(row).select();
+      if (error) { console.error('Error inserting job:', error); return null; }
+      return data?.[0]?.id;
+    }
+  }
+
+  async function deleteJobFromDb(id) {
+    const { error } = await supabase.from('jobs').delete().eq('id', id);
+    if (error) console.error('Error deleting job:', error);
+  }
+
+  async function saveResumeToDb(resumeData) {
+    const row = {
+      user_id: currentUser.id,
+      name: resumeData.name,
+      content: resumeData.content || '',
+      highlighted_html: resumeData.highlightedHtml || '',
+      original_id: resumeData.originalId || null
+    };
+
+    if (resumeData.id && typeof resumeData.id === 'string' && resumeData.id.includes('-')) {
+      const { error } = await supabase.from('resumes').update(row).eq('id', resumeData.id);
+      if (error) console.error('Error updating resume:', error);
+    } else {
+      const { data, error } = await supabase.from('resumes').insert(row).select();
+      if (error) { console.error('Error inserting resume:', error); return null; }
+      return data?.[0]?.id;
+    }
+  }
+
+  async function deleteResumeFromDb(id) {
+    const { error } = await supabase.from('resumes').delete().eq('id', id);
+    if (error) console.error('Error deleting resume:', error);
+  }
+
+  function saveJobs() { /* now handled by saveJobToDb */ }
+  function saveResumes() { /* now handled by saveResumeToDb */ }
 
   // Configure PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -859,82 +1014,7 @@
     }
   }
 
-  // Initial jobs from the original HTML
-  if (jobs.length === 0) {
-    jobs = [
-      {
-        id: '1',
-        title: 'Senior Manager, Scientific Communications, Planning & Operations',
-        company: 'Apogee Therapeutics',
-        url: 'https://job-boards.greenhouse.io/apogeetherapeutics/jobs/5078564007',
-        type: 'pharma',
-        status: 'saved',
-        fitLevel: 'strong',
-        salary: '$155K–$175K',
-        location: 'Remote (US)',
-        description: 'Supports operational and planning aspects of medical congress and publication activities. Tracks deliverables across publications and congresses; partners with Medical Affairs and cross-functional stakeholders to keep scientific communication compliant.',
-        requirements: '5+ yrs in med comms / sci comms operations / congress planning, MLR review process knowledge, ISMPP familiarity, hands-on with publications management systems.',
-        fitNotes: 'Maps almost 1:1 to your current scope — publication tracking, status trackers, cross-functional coordination. Pharma in-house pay bump and clear "Senior" title progression.'
-      },
-      {
-        id: '2',
-        title: 'Strategic Account Director, Medical Communications',
-        company: 'Precision AQ (Precision Medicine Group)',
-        url: 'https://job-boards.greenhouse.io/precisionmedicinegroup/jobs/5710460004',
-        type: 'agency',
-        status: 'saved',
-        fitLevel: 'strong',
-        salary: '$107K–$160K',
-        location: 'Remote (US)',
-        description: 'Day-to-day strategic advisor to the client. Owns delivery against budget and timelines, generates revenue, leads internal teams to maximize client effectiveness.',
-        requirements: 'Med-comms agency experience, client-facing leadership, financial/budget ownership, ability to lead a project team.',
-        fitNotes: 'Strong promotion path — same agency model as ApotheCom but with full account ownership and team leadership.'
-      },
-      {
-        id: '3',
-        title: 'Strategic Account Manager, Medical Communications',
-        company: 'Precision AQ (Precision Medicine Group)',
-        url: 'https://job-boards.greenhouse.io/precisionmedicinegroup/jobs/5976872004',
-        type: 'agency',
-        status: 'saved',
-        fitLevel: 'medium',
-        salary: '$79K–$119K',
-        location: 'Remote (US)',
-        description: 'First line of support to the Strategic Account Director. Manages projects under a SAD\'s direction, with explicit pathway to becoming a SAD.',
-        requirements: 'Bachelor\'s degree, med-comms project management experience, client relationship skills.',
-        fitNotes: 'A strong stepping stone if the SAD role above feels like a stretch.'
-      },
-      {
-        id: '4',
-        title: 'Account Manager / Senior Account Manager, Med Affairs',
-        company: 'Real Chemistry',
-        url: 'https://job-boards.greenhouse.io/realchemistry/jobs/5054800008',
-        type: 'agency',
-        status: 'saved',
-        fitLevel: 'medium',
-        salary: '',
-        location: 'Remote (US) or hybrid',
-        description: 'Day-to-day client lead for Scientific & Medical Affairs. Owns expectations, delivery, and the relationship across publications and med info workstreams.',
-        requirements: 'Healthcare agency client services experience, med affairs / publications / med info background.',
-        fitNotes: 'Dual-level posting, so they may title you at AM rather than Sr AM.'
-      },
-      {
-        id: '5',
-        title: 'Senior Program Manager (internal move)',
-        company: 'ApotheCom, an Inizio Company',
-        url: 'https://job-boards.greenhouse.io/apothecom',
-        type: 'agency',
-        status: 'saved',
-        fitLevel: '',
-        salary: '',
-        location: 'Remote / hybrid',
-        description: 'No external posting right now. The Senior Program Manager track exists internally and is the fastest promotion path.',
-        requirements: 'Bring this title to your next 1:1 with your director.',
-        fitNotes: 'Often the cheapest, fastest promotion. Worth running this conversation in parallel with external applications.'
-      }
-    ];
-    saveJobs();
-  }
+  // No seed data — everything comes from Supabase
 
   // Tab switching
   const navTabs = document.querySelectorAll('.nav-tab');
@@ -954,39 +1034,14 @@
   });
 
   // Job filtering
-  const cards = Array.from(document.querySelectorAll('.card'));
-  const chips = Array.from(document.querySelectorAll('.chip:not(#add-job-btn):not(#add-resume-btn)'));
   const search = document.getElementById('search');
   const empty = document.getElementById('empty');
   let activeFilter = 'all';
 
-  function applyFilters() {
-    const q = search.value.trim().toLowerCase();
-    let visible = 0;
-    cards.forEach(card => {
-      const types = card.dataset.type.split(' ');
-      const text = card.dataset.text;
-      const filterMatch = activeFilter === 'all' || types.includes(activeFilter);
-      const searchMatch = q === '' || text.includes(q);
-      if (filterMatch && searchMatch) {
-        card.classList.remove('hidden');
-        visible++;
-      } else {
-        card.classList.add('hidden');
-      }
-    });
-    empty.style.display = visible === 0 ? 'block' : 'none';
-  }
-
-  chips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      chips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      activeFilter = chip.dataset.filter;
-      applyFilters();
-    });
+  search.addEventListener('input', () => {
+    const newCards = Array.from(document.querySelectorAll('.card'));
+    applyFiltersToNewCards(newCards);
   });
-  search.addEventListener('input', applyFilters);
 
   // Job modal
   const jobModal = document.getElementById('job-modal');
@@ -1005,10 +1060,10 @@
     hideModal(jobModal);
   });
 
-  jobForm.addEventListener('submit', (e) => {
+  jobForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const jobData = {
-      id: editingJobId || Date.now().toString(),
+      id: editingJobId || null,
       title: document.getElementById('job-title').value,
       company: document.getElementById('job-company').value,
       url: document.getElementById('job-url').value,
@@ -1022,14 +1077,8 @@
       fitNotes: document.getElementById('job-fit-notes').value
     };
 
-    if (editingJobId) {
-      const index = jobs.findIndex(j => j.id === editingJobId);
-      jobs[index] = jobData;
-    } else {
-      jobs.push(jobData);
-    }
-
-    saveJobs();
+    await saveJobToDb(jobData);
+    await loadJobs();
     renderJobs();
     hideModal(jobModal);
   });
@@ -1067,7 +1116,7 @@
     hideModal(resumeModal);
   });
 
-  resumeForm.addEventListener('submit', (e) => {
+  resumeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const content = document.getElementById('resume-content').value;
     
@@ -1077,20 +1126,13 @@
     }
     
     const resumeData = {
-      id: editingResumeId || Date.now().toString(),
+      id: editingResumeId || null,
       name: document.getElementById('resume-name').value,
-      content: content,
-      createdAt: new Date().toISOString()
+      content: content
     };
 
-    if (editingResumeId) {
-      const index = resumes.findIndex(r => r.id === editingResumeId);
-      resumes[index] = resumeData;
-    } else {
-      resumes.push(resumeData);
-    }
-
-    saveResumes();
+    await saveResumeToDb(resumeData);
+    await loadResumes();
     renderResumes();
     hideModal(resumeModal);
   });
@@ -1412,7 +1454,7 @@
     openExportModal(document.getElementById('tailor-result-text').value, 'tailored-resume');
   });
 
-  saveTailoredResumeBtn.addEventListener('click', () => {
+  saveTailoredResumeBtn.addEventListener('click', async () => {
     const tailoredText = document.getElementById('tailor-result-text').value;
     const resumeId = document.getElementById('tailor-resume-select').value;
     const originalResume = resumes.find(r => r.id === resumeId);
@@ -1435,16 +1477,14 @@
 
     const tag = jobLabel ? ` → ${jobLabel}` : '';
     const newResume = {
-      id: Date.now().toString(),
       name: originalResume.name + ' (Tailored' + tag + ')',
       content: tailoredText,
-      createdAt: new Date().toISOString(),
       highlightedHtml: document.getElementById('tailor-result-highlighted').innerHTML,
       originalId: resumeId
     };
 
-    resumes.push(newResume);
-    saveResumes();
+    await saveResumeToDb(newResume);
+    await loadResumes();
     renderResumes();
     hideModal(tailorModal);
     alert('Tailored resume saved as a new resume!');
@@ -1581,34 +1621,16 @@
     return result;
   }
 
-  // Save functions
-  function saveJobs() {
-    localStorage.setItem('molly-jobs', JSON.stringify(jobs));
-  }
-
-  function saveResumes() {
-    localStorage.setItem('molly-resumes', JSON.stringify(resumes));
-  }
-
   // Render functions
   function renderJobs() {
     const grid = document.getElementById('grid');
+    if (jobs.length === 0) {
+      grid.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
     grid.innerHTML = jobs.map(job => createJobCard(job)).join('');
-    
-    // Re-attach filter listeners
-    const newCards = Array.from(document.querySelectorAll('.card'));
-    const newChips = Array.from(document.querySelectorAll('.chip:not(#add-job-btn):not(#add-resume-btn)'));
-    
-    newChips.forEach(chip => {
-      chip.onclick = () => {
-        newChips.forEach(c => c.classList.remove('active'));
-        chip.classList.add('active');
-        activeFilter = chip.dataset.filter;
-        applyFiltersToNewCards(newCards);
-      };
-    });
-    
-    search.oninput = () => applyFiltersToNewCards(newCards);
   }
 
   function applyFiltersToNewCards(cards) {
@@ -1722,10 +1744,10 @@
     showModal(jobModal);
   };
 
-  window.deleteJob = (id) => {
+  window.deleteJob = async (id) => {
     if (!confirm('Are you sure you want to delete this job?')) return;
-    jobs = jobs.filter(j => j.id !== id);
-    saveJobs();
+    await deleteJobFromDb(id);
+    await loadJobs();
     renderJobs();
   };
 
@@ -1741,10 +1763,10 @@
     showModal(resumeModal);
   };
 
-  window.deleteResume = (id) => {
+  window.deleteResume = async (id) => {
     if (!confirm('Are you sure you want to delete this resume?')) return;
-    resumes = resumes.filter(r => r.id !== id);
-    saveResumes();
+    await deleteResumeFromDb(id);
+    await loadResumes();
     renderResumes();
   };
 
@@ -1844,50 +1866,7 @@
     });
   }
 
-  // Migrate existing tailored resumes to add highlights
-  (function migrateTailoredResumes() {
-    let changed = false;
-    resumes.forEach(resume => {
-      if (resume.highlightedHtml) return; // already migrated
-      if (!resume.name.includes('(Tailored)')) return; // not a tailored resume
-
-      const origName = resume.name.replace(' (Tailored)', '');
-      const original = resumes.find(r => r.name === origName && !r.name.includes('(Tailored)'));
-      if (!original) return;
-
-      // Generate highlights by comparing lines
-      const origLines = original.content.split('\n');
-      const tailLines = resume.content.split('\n');
-      let highlighted = '';
-      for (let i = 0; i < tailLines.length; i++) {
-        const tLine = tailLines[i];
-        const oLine = origLines[i] || '';
-        if (tLine.trim() && tLine !== oLine) {
-          // Highlight changed words within the line
-          const tWords = tLine.split(/\s+/);
-          const oWords = oLine.split(/\s+/);
-          const parts = tWords.map((w, j) => {
-            if (j >= oWords.length || w !== oWords[j]) {
-              return '<span class="highlight-change">' + w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
-            }
-            return w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-          });
-          highlighted += parts.join(' ') + '\n';
-        } else {
-          highlighted += tLine.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '\n';
-        }
-      }
-      resume.highlightedHtml = highlighted;
-      resume.originalId = original.id;
-      changed = true;
-    });
-    if (changed) {
-      localStorage.setItem('molly-resumes', JSON.stringify(resumes));
-    }
-  })();
-
-  // Initial render
-  renderJobs();
+  // Initial render is triggered by supabase.auth.onAuthStateChange above
 </script>
 
 </body>
