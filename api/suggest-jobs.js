@@ -32,9 +32,9 @@ For each job, provide:
 - description: 2-3 sentence description of the role
 - requirements: Key qualifications (1-2 sentences)
 - fitNotes: Why this is a good match for the user (1-2 sentences)
-- url: A plausible job board URL (use https://www.linkedin.com/jobs or https://www.indeed.com as base)
+- searchQuery: A URL-safe search string like "Senior Product Manager Google" (just the role + company, no URL encoding needed)
 
-Return ONLY a JSON array of 5 job objects. No markdown, no explanation, just the JSON array.`,
+Do NOT include a "url" field. Return ONLY a JSON array of 5 job objects. No markdown, no explanation, just the JSON array.`,
         messages: [
           {
             role: 'user',

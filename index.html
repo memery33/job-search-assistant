@@ -1192,12 +1192,14 @@
       const data = await response.json();
       const suggestedJobs = data.jobs || [];
 
-      // Save each suggested job to Supabase
+      // Save each suggested job to Supabase with real search URLs
       for (const job of suggestedJobs) {
+        const query = encodeURIComponent(job.searchQuery || `${job.title} ${job.company}`);
+        const url = `https://www.linkedin.com/jobs/search/?keywords=${query}`;
         await saveJobToDb({
           title: job.title || '',
           company: job.company || '',
-          url: job.url || '',
+          url: url,
           type: job.type || 'full-time',
           workModel: job.workModel || 'remote',
           status: 'saved',
@@ -1974,7 +1976,7 @@
         ${job.requirements ? `<div class="reqs"><strong>Requirements:</strong> ${job.requirements.length > 150 ? job.requirements.substring(0, 150) + '…' : job.requirements}</div>` : ''}
         ${job.fitNotes ? `<div class="fit ${fitClass}">${job.fitNotes}</div>` : ''}
         <div class="actions">
-          ${job.url ? `<a class="btn primary" target="_blank" rel="noopener" href="${job.url}">Apply ↗</a>` : ''}
+          ${job.url ? `<a class="btn primary" target="_blank" rel="noopener" href="${job.url}">${job.url.includes('search') ? 'Search ↗' : 'Apply ↗'}</a>` : ''}
           <button class="btn" onclick="tailorFromJob('${job.id}')" style="background: #059669; color: white; border-color: #059669;">✨ Tailor</button>
           <button class="btn" onclick="editJob('${job.id}')">Edit</button>
           <button class="btn" onclick="deleteJob('${job.id}')" style="color: #dc2626; border-color: #fca5a5;">Delete</button>
