@@ -1057,130 +1057,103 @@
     }).catch(() => {});
   });
 
-  downloadDocxBtn.addEventListener('click', async () => {
-    const text = document.getElementById('tailor-result-text').value;
-    const btn = downloadDocxBtn;
-    btn.textContent = 'Generating...';
-    try {
-      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
-      const lines = text.split('\n');
-      const children = [];
+  // Reusable export functions
+  async function exportAsDocx(text, filename) {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+    const lines = text.split('\n');
+    const children = [];
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          children.push(new Paragraph({ spacing: { after: 80 } }));
-          continue;
-        }
-        // Detect headings: all caps lines or lines ending with colon
-        const isHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && /[A-Z]/.test(trimmed))
-          || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL)/i.test(trimmed);
-        // Detect bullet points
-        const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(trimmed);
-        // Detect name (first non-empty line, typically)
-        const isFirstLine = children.length === 0;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) { children.push(new Paragraph({ spacing: { after: 80 } })); continue; }
+      const isHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && /[A-Z]/.test(trimmed))
+        || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL)/i.test(trimmed);
+      const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(trimmed);
+      const isFirstLine = children.length === 0;
 
-        if (isFirstLine) {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: trimmed, bold: true, size: 28, font: 'Calibri' })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 40 }
-          }));
-        } else if (isHeading) {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: trimmed, bold: true, size: 22, font: 'Calibri', color: '2B579A' })],
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200, after: 80 },
-            border: { bottom: { color: 'D0D0D0', space: 1, style: 'single', size: 6 } }
-          }));
-        } else if (isBullet) {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: trimmed.replace(/^[\u2022\u2023\u25E6\-\*]\s/, ''), size: 20, font: 'Calibri' })],
-            bullet: { level: 0 },
-            spacing: { after: 40 }
-          }));
-        } else {
-          children.push(new Paragraph({
-            children: [new TextRun({ text: trimmed, size: 20, font: 'Calibri' })],
-            spacing: { after: 40 }
-          }));
-        }
+      if (isFirstLine) {
+        children.push(new Paragraph({ children: [new TextRun({ text: trimmed, bold: true, size: 28, font: 'Calibri' })], alignment: AlignmentType.CENTER, spacing: { after: 40 } }));
+      } else if (isHeading) {
+        children.push(new Paragraph({ children: [new TextRun({ text: trimmed, bold: true, size: 22, font: 'Calibri', color: '2B579A' })], heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 }, border: { bottom: { color: 'D0D0D0', space: 1, style: 'single', size: 6 } } }));
+      } else if (isBullet) {
+        children.push(new Paragraph({ children: [new TextRun({ text: trimmed.replace(/^[\u2022\u2023\u25E6\-\*]\s/, ''), size: 20, font: 'Calibri' })], bullet: { level: 0 }, spacing: { after: 40 } }));
+      } else {
+        children.push(new Paragraph({ children: [new TextRun({ text: trimmed, size: 20, font: 'Calibri' })], spacing: { after: 40 } }));
       }
-
-      const doc = new Document({
-        sections: [{ properties: {
-          page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } }
-        }, children }]
-      });
-      const blob = await Packer.toBlob(doc);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'tailored-resume.docx';
-      a.click();
-      URL.revokeObjectURL(url);
-      btn.textContent = 'Downloaded!';
-      setTimeout(() => { btn.textContent = 'Word (.docx)'; }, 1500);
-    } catch (err) {
-      console.error('DOCX export error:', err);
-      alert('Error generating DOCX: ' + err.message);
-      btn.textContent = 'Word (.docx)';
     }
-  });
 
-  downloadPdfBtn.addEventListener('click', () => {
-    const text = document.getElementById('tailor-result-text').value;
-    const btn = downloadPdfBtn;
-    btn.textContent = 'Generating...';
+    const doc = new Document({ sections: [{ properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename || 'resume.docx'; a.click();
+    URL.revokeObjectURL(url);
+  }
 
-    // Build a styled HTML element for PDF rendering
+  function exportAsPdf(text, filename) {
     const el = document.createElement('div');
     el.style.cssText = 'font-family: Calibri, Arial, sans-serif; font-size: 11px; line-height: 1.5; color: #222; padding: 0;';
-
     const lines = text.split('\n');
     let isFirst = true;
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed) {
-        el.appendChild(Object.assign(document.createElement('div'), { style: 'height: 6px;' }));
-        continue;
-      }
+      if (!trimmed) { el.appendChild(Object.assign(document.createElement('div'), { style: 'height: 6px;' })); continue; }
       const isHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && /[A-Z]/.test(trimmed))
         || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL)/i.test(trimmed);
       const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(trimmed);
-
       const p = document.createElement('div');
-      if (isFirst) {
-        p.style.cssText = 'font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 2px;';
-        p.textContent = trimmed;
-        isFirst = false;
-      } else if (isHeading) {
-        p.style.cssText = 'font-size: 12px; font-weight: 700; color: #2B579A; margin-top: 10px; margin-bottom: 3px; border-bottom: 1px solid #ddd; padding-bottom: 2px;';
-        p.textContent = trimmed;
-      } else if (isBullet) {
-        p.style.cssText = 'margin-left: 16px; margin-bottom: 1px;';
-        p.textContent = trimmed;
-      } else {
-        p.style.cssText = 'margin-bottom: 1px;';
-        p.textContent = trimmed;
-      }
+      if (isFirst) { p.style.cssText = 'font-size: 16px; font-weight: 700; text-align: center; margin-bottom: 2px;'; p.textContent = trimmed; isFirst = false; }
+      else if (isHeading) { p.style.cssText = 'font-size: 12px; font-weight: 700; color: #2B579A; margin-top: 10px; margin-bottom: 3px; border-bottom: 1px solid #ddd; padding-bottom: 2px;'; p.textContent = trimmed; }
+      else if (isBullet) { p.style.cssText = 'margin-left: 16px; margin-bottom: 1px;'; p.textContent = trimmed; }
+      else { p.style.cssText = 'margin-bottom: 1px;'; p.textContent = trimmed; }
       el.appendChild(p);
     }
+    return html2pdf().set({ margin: [0.5, 0.5, 0.5, 0.5], filename: filename || 'resume.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } }).from(el).save();
+  }
 
-    html2pdf().set({
-      margin: [0.5, 0.5, 0.5, 0.5],
-      filename: 'tailored-resume.pdf',
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-    }).from(el).save().then(() => {
-      btn.textContent = 'Downloaded!';
-      setTimeout(() => { btn.textContent = 'PDF'; }, 1500);
-    }).catch(err => {
-      console.error('PDF export error:', err);
-      alert('Error generating PDF: ' + err.message);
-      btn.textContent = 'PDF';
-    });
+  // Tailor modal export buttons
+  downloadDocxBtn.addEventListener('click', async () => {
+    const btn = downloadDocxBtn;
+    btn.textContent = 'Generating...';
+    try {
+      await exportAsDocx(document.getElementById('tailor-result-text').value, 'tailored-resume.docx');
+      btn.textContent = 'Downloaded!'; setTimeout(() => { btn.textContent = 'Word (.docx)'; }, 1500);
+    } catch (err) { alert('Error generating DOCX: ' + err.message); btn.textContent = 'Word (.docx)'; }
   });
+
+  downloadPdfBtn.addEventListener('click', async () => {
+    const btn = downloadPdfBtn;
+    btn.textContent = 'Generating...';
+    try {
+      await exportAsPdf(document.getElementById('tailor-result-text').value, 'tailored-resume.pdf');
+      btn.textContent = 'Downloaded!'; setTimeout(() => { btn.textContent = 'PDF'; }, 1500);
+    } catch (err) { alert('Error generating PDF: ' + err.message); btn.textContent = 'PDF'; }
+  });
+
+  // Global export functions for resume cards
+  window.exportResumeDocx = async (id) => {
+    const resume = resumes.find(r => r.id === id);
+    if (!resume) return;
+    const btn = document.querySelector(`[data-export-docx="${id}"]`);
+    if (btn) { btn.textContent = '...'; }
+    try {
+      const safeName = resume.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      await exportAsDocx(resume.content, safeName + '.docx');
+    } catch (err) { alert('Error: ' + err.message); }
+    if (btn) { btn.textContent = 'DOCX'; }
+  };
+
+  window.exportResumePdf = async (id) => {
+    const resume = resumes.find(r => r.id === id);
+    if (!resume) return;
+    const btn = document.querySelector(`[data-export-pdf="${id}"]`);
+    if (btn) { btn.textContent = '...'; }
+    try {
+      const safeName = resume.name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+      await exportAsPdf(resume.content, safeName + '.pdf');
+    } catch (err) { alert('Error: ' + err.message); }
+    if (btn) { btn.textContent = 'PDF'; }
+  };
 
   saveTailoredResumeBtn.addEventListener('click', () => {
     const tailoredText = document.getElementById('tailor-result-text').value;
@@ -1434,9 +1407,11 @@
             <div class="resume-name">${resume.name}</div>
             <div style="font-size: 12px; color: #999; margin-top: 2px;">${wordCount} words</div>
           </div>
-          <div style="display: flex; gap: 6px; align-items: center;">
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
             <button class="btn" onclick="viewResume('${resume.id}')" style="padding: 6px 12px; font-size: 13px;">View</button>
             <button class="btn" onclick="editResume('${resume.id}')" style="padding: 6px 12px; font-size: 13px;">Edit</button>
+            <button class="btn" data-export-docx="${resume.id}" onclick="exportResumeDocx('${resume.id}')" style="padding: 6px 12px; font-size: 12px; border-color: #ddd; color: #555;">DOCX</button>
+            <button class="btn" data-export-pdf="${resume.id}" onclick="exportResumePdf('${resume.id}')" style="padding: 6px 12px; font-size: 12px; border-color: #ddd; color: #555;">PDF</button>
             <button class="btn" onclick="tailorResume('${resume.id}')" style="padding: 6px 12px; font-size: 13px; background: #059669; color: white; border-color: #059669;">Tailor</button>
             <button class="btn" onclick="deleteResume('${resume.id}')" style="padding: 6px 12px; font-size: 13px; color: #dc2626; border-color: #fca5a5;">Delete</button>
           </div>
