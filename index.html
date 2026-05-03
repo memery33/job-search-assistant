@@ -1422,16 +1422,12 @@
       return;
     }
 
-    // Extract job label from job description
-    const jobDesc = document.getElementById('tailor-job-desc').value.trim();
-    let jobLabel = '';
-    if (jobDesc) {
-      const firstLine = jobDesc.split('\n')[0].trim();
-      // Check if it looks like "Title at Company" (from tailorFromJob)
-      if (/\bat\b/i.test(firstLine) && firstLine.length < 80) {
-        jobLabel = firstLine;
-      } else {
-        // Try to extract a short label from first line
+    // Use stored job label, or extract from job description
+    let jobLabel = tailorJobLabel;
+    if (!jobLabel) {
+      const jobDesc = document.getElementById('tailor-job-desc').value.trim();
+      if (jobDesc) {
+        const firstLine = jobDesc.split('\n')[0].trim();
         jobLabel = firstLine.substring(0, 50);
         if (firstLine.length > 50) jobLabel += '…';
       }
@@ -1817,8 +1813,11 @@
     document.getElementById('tailor-input-section').style.display = 'block';
   }
 
+  let tailorJobLabel = '';
+
   window.tailorResume = (id) => {
     resetTailorModal();
+    tailorJobLabel = '';
     populateResumeSelector();
     document.getElementById('tailor-resume-select').value = id;
     document.getElementById('tailor-job-desc').value = '';
@@ -1830,6 +1829,7 @@
     if (!job) return;
     
     resetTailorModal();
+    tailorJobLabel = `${job.title} at ${job.company}`;
     populateResumeSelector();
     const jobDesc = `${job.title} at ${job.company}\n\n${job.description || ''}\n\nRequirements: ${job.requirements || ''}`;
     document.getElementById('tailor-job-desc').value = jobDesc;
