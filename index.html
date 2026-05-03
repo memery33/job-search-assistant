@@ -104,14 +104,17 @@
     white-space: nowrap;
     display: inline-block;
   }
-  .badge.agency { background: #eef4ff; color: #2540a8; }
-  .badge.pharma { background: #ecfaef; color: #1d6e36; }
-  .badge.fit-strong { background: #fff4d6; color: #8a5a00; }
-  .badge.verified {
-    background: #e9f9ee;
-    color: #1d6e36;
-    border: 1px solid #b9e6c5;
-  }
+  .badge.full-time { background: #eef4ff; color: #2540a8; }
+  .badge.part-time { background: #f3e5ff; color: #7c3aed; }
+  .badge.contract { background: #fff4d6; color: #8a5a00; }
+  .badge.freelance { background: #fef3c7; color: #92400e; }
+  .badge.internship { background: #ecfaef; color: #1d6e36; }
+  .badge.remote { background: #e0f2fe; color: #0369a1; }
+  .badge.hybrid { background: #fce7f3; color: #be185d; }
+  .badge.onsite { background: #f3f3f3; color: #555; }
+  .badge.fit-strong { background: #dcfce7; color: #166534; }
+  .badge.fit-medium { background: #fff4d6; color: #8a5a00; }
+  .badge.fit-weak { background: #fee5e5; color: #dc2626; }
 
   .meta-row {
     display: flex;
@@ -130,8 +133,9 @@
     border-left: 3px solid #ccc;
     border-radius: 4px;
   }
-  .fit.strong { border-left-color: #8a5a00; background: #fffdf5; }
-  .fit.medium { border-left-color: #2540a8; background: #f7f9ff; }
+  .fit.strong { border-left-color: #166534; background: #f0fdf4; }
+  .fit.medium { border-left-color: #8a5a00; background: #fffdf5; }
+  .fit.weak { border-left-color: #dc2626; background: #fef2f2; }
   .fit.note { border-left-color: #999; }
 
   .actions {
@@ -298,9 +302,11 @@
   }
   .status-saved { background: #f3f3f3; color: #666; }
   .status-applied { background: #eef4ff; color: #2540a8; }
+  .status-phone-screen { background: #e0f2fe; color: #0369a1; }
   .status-interviewing { background: #f3e5ff; color: #7c3aed; }
   .status-offer { background: #ecfaef; color: #1d6e36; }
   .status-rejected { background: #fee5e5; color: #dc2626; }
+  .status-withdrawn { background: #fef3c7; color: #92400e; }
 
   .loading {
     opacity: 0.6;
@@ -417,6 +423,29 @@
   .user-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .user-bar .user-email { font-size: 12px; color: #888; }
   .user-bar .btn-logout { font-size: 12px; color: #dc2626; background: none; border: 1px solid #fca5a5; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+
+  /* Onboarding */
+  .onboarding-screen { min-height: 100vh; display: none; align-items: center; justify-content: center; background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%); padding: 20px; }
+  .onboarding-card { background: white; border-radius: 16px; padding: 40px 36px; width: 100%; max-width: 520px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+  .onboarding-card h1 { font-size: 24px; margin: 0 0 4px; font-weight: 800; }
+  .onboarding-card .subtitle { color: #888; margin: 0 0 24px; font-size: 14px; }
+  .onboarding-card .form-group { margin-bottom: 16px; }
+  .onboarding-card label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #555; }
+  .onboarding-card input, .onboarding-card select, .onboarding-card textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; font-family: inherit;
+  }
+  .onboarding-card input:focus, .onboarding-card select:focus, .onboarding-card textarea:focus { outline: none; border-color: #059669; box-shadow: 0 0 0 3px rgba(5,150,105,0.1); }
+  .onboarding-card .step-indicator { font-size: 12px; color: #888; margin-bottom: 16px; }
+  .onboarding-card .btn-row { display: flex; gap: 12px; margin-top: 24px; }
+  .onboarding-card .btn-onboard { flex: 1; padding: 12px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .onboarding-card .btn-onboard:hover { background: #047857; }
+  .onboarding-card .btn-skip { flex: 0; padding: 12px 20px; background: white; color: #888; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .onboarding-card .btn-skip:hover { border-color: #999; color: #555; }
+  .onboarding-card .btn-back { flex: 0; padding: 12px 20px; background: white; color: #555; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; cursor: pointer; }
+  .chip-select { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip-option { padding: 8px 16px; border: 1px solid #ddd; border-radius: 999px; font-size: 13px; cursor: pointer; transition: all 0.15s; background: white; }
+  .chip-option:hover { border-color: #059669; }
+  .chip-option.selected { background: #059669; color: white; border-color: #059669; }
 </style>
 </head>
 <body>
@@ -441,6 +470,92 @@
     <div class="auth-toggle">
       <span id="auth-toggle-text">Already have an account?</span>
       <a id="auth-toggle-link">Log in</a>
+    </div>
+  </div>
+</div>
+
+<!-- Onboarding Screen -->
+<div id="onboarding-screen" class="onboarding-screen">
+  <div class="onboarding-card">
+    <h1>Welcome to Applyt 👋</h1>
+    <p class="subtitle">Tell us about your job search so we can help you better.</p>
+    <div class="step-indicator" id="onboard-step-indicator">Step 1 of 3</div>
+
+    <!-- Step 1: About You -->
+    <div id="onboard-step-1" class="onboard-step">
+      <div class="form-group">
+        <label>What's your name?</label>
+        <input type="text" id="onboard-name" placeholder="First name or full name">
+      </div>
+      <div class="form-group">
+        <label>What industry are you in?</label>
+        <div class="chip-select" id="onboard-industry">
+          <span class="chip-option" data-val="tech">Tech / Software</span>
+          <span class="chip-option" data-val="healthcare">Healthcare</span>
+          <span class="chip-option" data-val="finance">Finance</span>
+          <span class="chip-option" data-val="marketing">Marketing</span>
+          <span class="chip-option" data-val="education">Education</span>
+          <span class="chip-option" data-val="engineering">Engineering</span>
+          <span class="chip-option" data-val="design">Design</span>
+          <span class="chip-option" data-val="sales">Sales</span>
+          <span class="chip-option" data-val="other">Other</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-skip" onclick="skipOnboarding()">Skip</button>
+        <button class="btn-onboard" onclick="nextOnboardStep(2)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Job Preferences -->
+    <div id="onboard-step-2" class="onboard-step" style="display:none;">
+      <div class="form-group">
+        <label>What role are you targeting?</label>
+        <input type="text" id="onboard-target-role" placeholder="e.g., Senior Product Manager, Data Analyst">
+      </div>
+      <div class="form-group">
+        <label>Experience level</label>
+        <div class="chip-select" id="onboard-experience">
+          <span class="chip-option" data-val="entry">Entry level</span>
+          <span class="chip-option" data-val="mid">Mid-level (2–5 yrs)</span>
+          <span class="chip-option" data-val="senior">Senior (5–10 yrs)</span>
+          <span class="chip-option" data-val="lead">Lead / Principal</span>
+          <span class="chip-option" data-val="executive">Executive / Director</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Preferred work model</label>
+        <div class="chip-select" id="onboard-work-model">
+          <span class="chip-option" data-val="remote">Remote</span>
+          <span class="chip-option" data-val="hybrid">Hybrid</span>
+          <span class="chip-option" data-val="onsite">On-site</span>
+          <span class="chip-option" data-val="any">No preference</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="nextOnboardStep(1)">← Back</button>
+        <button class="btn-onboard" onclick="nextOnboardStep(3)">Next →</button>
+      </div>
+    </div>
+
+    <!-- Step 3: Location & Salary -->
+    <div id="onboard-step-3" class="onboard-step" style="display:none;">
+      <div class="form-group">
+        <label>Preferred location(s)</label>
+        <input type="text" id="onboard-location" placeholder="e.g., San Francisco, New York, or Anywhere">
+      </div>
+      <div class="form-group">
+        <label>Target salary range</label>
+        <input type="text" id="onboard-salary" placeholder="e.g., $80K–$120K">
+      </div>
+      <div class="form-group">
+        <label>Anything else we should know? (optional)</label>
+        <textarea id="onboard-notes" rows="3" placeholder="Career goals, must-haves, deal-breakers…"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn-back" onclick="nextOnboardStep(2)">← Back</button>
+        <button class="btn-onboard" onclick="saveOnboarding()">Get Started 🚀</button>
+      </div>
     </div>
   </div>
 </div>
@@ -503,52 +618,70 @@
         <label>Job URL *</label>
         <input type="url" id="job-url" required>
       </div>
-      <div class="form-group">
-        <label>Type</label>
-        <select id="job-type">
-          <option value="agency">Agency</option>
-          <option value="pharma">Pharma</option>
-          <option value="other">Other</option>
-        </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Job Type</label>
+          <select id="job-type">
+            <option value="full-time">Full-time</option>
+            <option value="part-time">Part-time</option>
+            <option value="contract">Contract</option>
+            <option value="freelance">Freelance</option>
+            <option value="internship">Internship</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Work Model</label>
+          <select id="job-work-model">
+            <option value="remote">Remote</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="onsite">On-site</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="job-status">
+            <option value="saved">Saved</option>
+            <option value="applied">Applied</option>
+            <option value="phone-screen">Phone Screen</option>
+            <option value="interviewing">Interviewing</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fit Level</label>
+          <select id="job-fit">
+            <option value="">Not assessed</option>
+            <option value="strong">Strong fit</option>
+            <option value="medium">Possible fit</option>
+            <option value="weak">Stretch</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group">
+          <label>Salary / Compensation</label>
+          <input type="text" id="job-salary" placeholder="e.g., $80K–$120K">
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="job-location" placeholder="e.g., New York, NY">
+        </div>
       </div>
       <div class="form-group">
-        <label>Status</label>
-        <select id="job-status">
-          <option value="saved">Saved</option>
-          <option value="applied">Applied</option>
-          <option value="interviewing">Interviewing</option>
-          <option value="offer">Offer</option>
-          <option value="rejected">Rejected</option>
-        </select>
+        <label>Job Description</label>
+        <textarea id="job-description" rows="3" placeholder="Paste the job description here…"></textarea>
       </div>
       <div class="form-group">
-        <label>Fit Level</label>
-        <select id="job-fit">
-          <option value="">Not set</option>
-          <option value="strong">Strong</option>
-          <option value="medium">Medium</option>
-          <option value="weak">Weak</option>
-        </select>
+        <label>Requirements / Qualifications</label>
+        <textarea id="job-requirements" rows="2" placeholder="Key skills, experience, education…"></textarea>
       </div>
       <div class="form-group">
-        <label>Salary</label>
-        <input type="text" id="job-salary" placeholder="e.g., $150K–$175K">
-      </div>
-      <div class="form-group">
-        <label>Location</label>
-        <input type="text" id="job-location" placeholder="e.g., Remote (US)">
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <textarea id="job-description" rows="3"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Requirements</label>
-        <textarea id="job-requirements" rows="2"></textarea>
-      </div>
-      <div class="form-group">
-        <label>Fit Notes</label>
-        <textarea id="job-fit-notes" rows="2"></textarea>
+        <label>Your Notes</label>
+        <textarea id="job-fit-notes" rows="2" placeholder="Why this role interests you, fit notes, contacts…"></textarea>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn" id="cancel-job">Cancel</button>
@@ -799,21 +932,21 @@
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
       currentUser = session.user;
-      document.getElementById('auth-screen').style.display = 'none';
-      document.getElementById('app-container').style.display = 'block';
-      document.getElementById('user-email').textContent = currentUser.email;
 
       // Migrate localStorage data if any
       await migrateLocalData();
 
-      // Load data from Supabase
-      await loadJobs();
-      await loadResumes();
-      renderJobs();
-      renderResumes();
+      // Check if user has completed onboarding
+      const profile = await loadProfile();
+      if (!profile || !profile.onboarding_complete) {
+        showOnboarding();
+      } else {
+        await showApp();
+      }
     } else {
       currentUser = null;
       document.getElementById('auth-screen').style.display = 'flex';
+      document.getElementById('onboarding-screen').style.display = 'none';
       document.getElementById('app-container').style.display = 'none';
       jobs = [];
       resumes = [];
@@ -870,6 +1003,7 @@
       company: j.company,
       url: j.url,
       type: j.type,
+      workModel: j.work_model || 'remote',
       status: j.status,
       fitLevel: j.fit_level,
       salary: j.salary,
@@ -900,6 +1034,7 @@
       company: jobData.company,
       url: jobData.url || '',
       type: jobData.type || 'full-time',
+      work_model: jobData.workModel || 'remote',
       status: jobData.status || 'saved',
       fit_level: jobData.fitLevel || '',
       salary: jobData.salary || '',
@@ -952,6 +1087,99 @@
 
   function saveJobs() { /* now handled by saveJobToDb */ }
   function saveResumes() { /* now handled by saveResumeToDb */ }
+
+  // ========== PROFILES ==========
+  let userProfile = null;
+
+  async function loadProfile() {
+    const { data, error } = await sb.from('profiles').select('*').eq('user_id', currentUser.id).single();
+    if (error && error.code !== 'PGRST116') { console.error('Error loading profile:', error); return null; }
+    userProfile = data;
+    return data;
+  }
+
+  async function saveProfile(profileData) {
+    const row = {
+      user_id: currentUser.id,
+      display_name: profileData.displayName || '',
+      industry: profileData.industry || '',
+      target_role: profileData.targetRole || '',
+      experience_level: profileData.experienceLevel || '',
+      preferred_work_model: profileData.preferredWorkModel || '',
+      preferred_location: profileData.preferredLocation || '',
+      target_salary: profileData.targetSalary || '',
+      notes: profileData.notes || '',
+      onboarding_complete: true
+    };
+
+    // Upsert — insert or update
+    const { data, error } = await sb.from('profiles').upsert(row, { onConflict: 'user_id' }).select();
+    if (error) { console.error('Error saving profile:', error); return; }
+    userProfile = data?.[0] || row;
+  }
+
+  // ========== ONBOARDING ==========
+  // Chip-select handlers
+  document.querySelectorAll('.chip-select').forEach(container => {
+    container.addEventListener('click', (e) => {
+      const chip = e.target.closest('.chip-option');
+      if (!chip) return;
+      // Allow single selection per group
+      container.querySelectorAll('.chip-option').forEach(c => c.classList.remove('selected'));
+      chip.classList.add('selected');
+    });
+  });
+
+  function getChipValue(containerId) {
+    const selected = document.getElementById(containerId)?.querySelector('.chip-option.selected');
+    return selected?.dataset.val || '';
+  }
+
+  window.nextOnboardStep = (step) => {
+    document.querySelectorAll('.onboard-step').forEach(s => s.style.display = 'none');
+    document.getElementById(`onboard-step-${step}`).style.display = 'block';
+    document.getElementById('onboard-step-indicator').textContent = `Step ${step} of 3`;
+  };
+
+  window.skipOnboarding = async () => {
+    await saveProfile({ onboardingComplete: true });
+    showApp();
+  };
+
+  window.saveOnboarding = async () => {
+    const profileData = {
+      displayName: document.getElementById('onboard-name').value,
+      industry: getChipValue('onboard-industry'),
+      targetRole: document.getElementById('onboard-target-role').value,
+      experienceLevel: getChipValue('onboard-experience'),
+      preferredWorkModel: getChipValue('onboard-work-model'),
+      preferredLocation: document.getElementById('onboard-location').value,
+      targetSalary: document.getElementById('onboard-salary').value,
+      notes: document.getElementById('onboard-notes').value
+    };
+    await saveProfile(profileData);
+    showApp();
+  };
+
+  function showOnboarding() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('onboarding-screen').style.display = 'flex';
+    document.getElementById('app-container').style.display = 'none';
+  }
+
+  async function showApp() {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('onboarding-screen').style.display = 'none';
+    document.getElementById('app-container').style.display = 'block';
+
+    const name = userProfile?.display_name || currentUser.email;
+    document.getElementById('user-email').textContent = name;
+
+    await loadJobs();
+    await loadResumes();
+    renderJobs();
+    renderResumes();
+  }
 
   // Configure PDF.js worker
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -1068,6 +1296,7 @@
       company: document.getElementById('job-company').value,
       url: document.getElementById('job-url').value,
       type: document.getElementById('job-type').value,
+      workModel: document.getElementById('job-work-model').value,
       status: document.getElementById('job-status').value,
       fitLevel: document.getElementById('job-fit').value,
       salary: document.getElementById('job-salary').value,
@@ -1653,38 +1882,42 @@
 
   function createJobCard(job) {
     const fitClass = job.fitLevel ? `fit-${job.fitLevel}` : 'fit note';
-    const fitBadge = job.fitLevel ? `<span class="badge fit-${job.fitLevel}">${job.fitLevel} fit</span>` : '';
-    const statusBadge = `<span class="status-badge status-${job.status}">${job.status}</span>`;
-    const typeBadge = `<span class="badge ${job.type}">${job.type}</span>`;
+    const fitLabel = { strong: 'Strong fit', medium: 'Possible fit', weak: 'Stretch' }[job.fitLevel] || '';
+    const fitBadge = job.fitLevel ? `<span class="badge fit-${job.fitLevel}">${fitLabel}</span>` : '';
+    const statusBadge = `<span class="status-badge status-${job.status}">${job.status.replace('-', ' ')}</span>`;
+    const typeBadge = `<span class="badge ${job.type}">${job.type.replace('-', ' ')}</span>`;
+    const modelBadge = job.workModel ? `<span class="badge ${job.workModel}">${job.workModel === 'onsite' ? 'On-site' : job.workModel.charAt(0).toUpperCase() + job.workModel.slice(1)}</span>` : '';
     
-    const searchableText = `${job.title} ${job.company} ${job.description} ${job.requirements} ${job.fitNotes}`.toLowerCase();
+    const searchableText = `${job.title} ${job.company} ${job.type} ${job.workModel} ${job.location} ${job.description} ${job.requirements} ${job.fitNotes}`.toLowerCase();
     
     return `
-      <div class="card" data-type="${job.type} ${job.fitLevel || ''}" data-text="${searchableText}">
+      <div class="card" data-type="${job.type} ${job.workModel || ''} ${job.status} ${job.fitLevel || ''}" data-text="${searchableText}">
         <div class="card-header">
           <div>
             <div class="role">${job.title}</div>
             <div class="company">${job.company}</div>
           </div>
           <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-            ${typeBadge}
+            <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">
+              ${typeBadge}
+              ${modelBadge}
+            </div>
             ${fitBadge}
             ${statusBadge}
           </div>
         </div>
         <div class="meta-row">
-          ${job.location ? `<span>${job.location}</span>` : ''}
-          ${job.location && job.salary ? '<span>·</span>' : ''}
-          ${job.salary ? `<span>${job.salary}</span>` : ''}
+          ${job.location ? `<span>📍 ${job.location}</span>` : ''}
+          ${job.salary ? `<span>💰 ${job.salary}</span>` : ''}
         </div>
-        ${job.description ? `<div class="summary">${job.description}</div>` : ''}
-        ${job.requirements ? `<div class="reqs"><strong>Requires:</strong> ${job.requirements}</div>` : ''}
+        ${job.description ? `<div class="summary">${job.description.length > 200 ? job.description.substring(0, 200) + '…' : job.description}</div>` : ''}
+        ${job.requirements ? `<div class="reqs"><strong>Requirements:</strong> ${job.requirements.length > 150 ? job.requirements.substring(0, 150) + '…' : job.requirements}</div>` : ''}
         ${job.fitNotes ? `<div class="fit ${fitClass}">${job.fitNotes}</div>` : ''}
         <div class="actions">
-          <a class="btn primary" target="_blank" rel="noopener" href="${job.url}">Apply</a>
-          <button class="btn" onclick="tailorFromJob('${job.id}')" style="background: #8a5a00; color: white; border-color: #8a5a00;">✨ Tailor Resume</button>
+          ${job.url ? `<a class="btn primary" target="_blank" rel="noopener" href="${job.url}">Apply ↗</a>` : ''}
+          <button class="btn" onclick="tailorFromJob('${job.id}')" style="background: #059669; color: white; border-color: #059669;">✨ Tailor</button>
           <button class="btn" onclick="editJob('${job.id}')">Edit</button>
-          <button class="btn" onclick="deleteJob('${job.id}')" style="color: #dc2626; border-color: #dc2626;">Delete</button>
+          <button class="btn" onclick="deleteJob('${job.id}')" style="color: #dc2626; border-color: #fca5a5;">Delete</button>
         </div>
       </div>
     `;
@@ -1733,6 +1966,7 @@
     document.getElementById('job-company').value = job.company;
     document.getElementById('job-url').value = job.url;
     document.getElementById('job-type').value = job.type;
+    document.getElementById('job-work-model').value = job.workModel || 'remote';
     document.getElementById('job-status').value = job.status;
     document.getElementById('job-fit').value = job.fitLevel || '';
     document.getElementById('job-salary').value = job.salary || '';

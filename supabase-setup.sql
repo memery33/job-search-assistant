@@ -32,6 +32,23 @@ create table public.resumes (
   created_at timestamptz default now()
 );
 
+-- Profiles table (onboarding + user preferences)
+create table public.profiles (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null unique,
+  display_name text default '',
+  industry text default '',
+  target_role text default '',
+  experience_level text default '',
+  preferred_work_model text default '',
+  preferred_location text default '',
+  target_salary text default '',
+  notes text default '',
+  onboarding_complete boolean default false,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
 -- Enable Row Level Security
 alter table public.jobs enable row level security;
 alter table public.resumes enable row level security;
