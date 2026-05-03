@@ -305,7 +305,11 @@
     opacity: 0.6;
     pointer-events: none;
   }
-  .highlight-change { background: linear-gradient(120deg, #d4edda 0%, #c3e6cb 100%); padding: 1px 4px; border-radius: 3px; }
+  .highlight-change { background: #bbf7d0; padding: 1px 5px; border-radius: 3px; border-bottom: 2px solid #22c55e; font-weight: 500; }
+  .changes-legend { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #888; padding: 0 4px; margin-bottom: 6px; }
+  .changes-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .changes-legend .swatch { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+  .toggle-original { font-size: 12px; color: #059669; cursor: pointer; border: none; background: none; text-decoration: underline; padding: 0; }
 
   .tailor-score-ring {
     width: 72px; height: 72px; border-radius: 50%;
@@ -733,7 +737,20 @@
         <p id="tailor-subline">Keywords matched and bullet points optimized for this role.</p>
       </div>
 
-      <div id="tailor-result-highlighted" class="tailor-preview"></div>
+      <div class="changes-legend">
+        <span><span class="swatch" style="background:#bbf7d0;border-bottom:2px solid #22c55e;"></span> AI improved</span>
+        <button type="button" class="toggle-original" id="toggle-original">Show original for comparison</button>
+      </div>
+      <div id="tailor-compare-wrap" style="flex:1;display:flex;gap:10px;overflow:hidden;min-height:0;">
+        <div style="flex:1;display:flex;flex-direction:column;min-width:0;">
+          <div id="label-tailored" style="display:none;font-size:11px;font-weight:600;color:#059669;margin-bottom:4px;">TAILORED VERSION</div>
+          <div id="tailor-result-highlighted" class="tailor-preview" style="flex:1;margin:0;"></div>
+        </div>
+        <div id="original-pane" style="flex:1;display:none;flex-direction:column;min-width:0;">
+          <div style="font-size:11px;font-weight:600;color:#d97706;margin-bottom:4px;">YOUR ORIGINAL</div>
+          <div id="tailor-original-view" class="tailor-preview" style="flex:1;margin:0;border-color:#fde68a;background:#fffbeb;"></div>
+        </div>
+      </div>
       <textarea id="tailor-result-text" style="display:none;"></textarea>
 
       <div class="tailor-footer">
@@ -1082,6 +1099,32 @@
     document.getElementById('tailor-result').style.display = 'none';
     document.getElementById('tailor-loading').style.display = 'none';
     document.getElementById('tailor-input-section').style.display = 'block';
+    // Reset comparison view
+    showingOriginal = false;
+    document.getElementById('original-pane').style.display = 'none';
+    document.getElementById('label-tailored').style.display = 'none';
+    document.getElementById('tailor-result-highlighted').style.borderColor = '#e5e5e5';
+    document.getElementById('toggle-original').textContent = 'Show original for comparison';
+  });
+
+  let showingOriginal = false;
+  document.getElementById('toggle-original').addEventListener('click', () => {
+    showingOriginal = !showingOriginal;
+    const originalPane = document.getElementById('original-pane');
+    const labelTailored = document.getElementById('label-tailored');
+    const highlightedEl = document.getElementById('tailor-result-highlighted');
+    const toggleBtn = document.getElementById('toggle-original');
+    if (showingOriginal) {
+      originalPane.style.display = 'flex';
+      labelTailored.style.display = 'block';
+      highlightedEl.style.borderColor = '#86efac';
+      toggleBtn.textContent = 'Hide original';
+    } else {
+      originalPane.style.display = 'none';
+      labelTailored.style.display = 'none';
+      highlightedEl.style.borderColor = '#e5e5e5';
+      toggleBtn.textContent = 'Show original for comparison';
+    }
   });
 
   copyToClipboardBtn.addEventListener('click', () => {
@@ -1423,6 +1466,14 @@
       
       document.getElementById('tailor-result-text').value = plainText;
       document.getElementById('tailor-result-highlighted').innerHTML = highlighted;
+      document.getElementById('tailor-original-view').textContent = resume.content;
+      
+      // Reset comparison state
+      showingOriginal = false;
+      document.getElementById('original-pane').style.display = 'none';
+      document.getElementById('label-tailored').style.display = 'none';
+      document.getElementById('tailor-result-highlighted').style.borderColor = '#e5e5e5';
+      document.getElementById('toggle-original').textContent = 'Show original for comparison';
       
       document.getElementById('tailor-loading').style.display = 'none';
       document.getElementById('tailor-result').style.display = 'flex';
