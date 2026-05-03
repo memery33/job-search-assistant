@@ -1156,100 +1156,144 @@
   function parseResumeText(text) {
     const lines = text.split('\n');
     let name = '';
-    let contact = '';
+    let contactLines = [];
     const sections = [];
     let currentSection = null;
+    let foundFirstSection = false;
+
+    const sectionPattern = /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL|WORK|TECHNICAL|QUALIFICATIONS|ACHIEVEMENTS|CONTACT|PUBLICATIONS|INTERESTS|LANGUAGES|VOLUNTEER|PROFILE|CORE COMPETENCIES|KEY SKILLS|ADDITIONAL)/i;
+
+    function isSectionHeading(line) {
+      const t = line.trim();
+      if (!t || t.length < 3) return false;
+      if (sectionPattern.test(t)) return true;
+      if (t === t.toUpperCase() && t.length > 3 && t.length < 50 && /[A-Z]{2,}/.test(t) && !/\d{4}/.test(t)) return true;
+      return false;
+    }
+
+    function isBullet(line) { return /^\s*[\u2022\u2023\u25E6\-\*\u25CF]\s/.test(line); }
+
+    function hasDate(line) { return /\b(19|20)\d{2}\b/.test(line) || /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|present|current)\b/i.test(line); }
+
+    function isContactLine(line) {
+      const t = line.trim();
+      return /@/.test(t) || /\d{3}[\-\.\s]?\d{3}/.test(t) || /linkedin/i.test(t) || /[|•·]/.test(t) || (t.split(/\s{2,}|[|•·,]/).length >= 2 && t.length < 100 && !hasDate(t));
+    }
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
+      const trimmed = lines[i].trim();
+      if (!trimmed) {
+        if (currentSection) currentSection.items.push({ type: 'blank' });
+        continue;
+      }
       if (!name) { name = trimmed; continue; }
 
-      const isSectionHeading = (trimmed === trimmed.toUpperCase() && trimmed.length > 2 && /[A-Z]/.test(trimmed))
-        || /^(EXPERIENCE|EDUCATION|SKILLS|SUMMARY|OBJECTIVE|CERTIFICATIONS|PROJECTS|AWARDS|REFERENCES|PROFESSIONAL|WORK|TECHNICAL|QUALIFICATIONS|ACHIEVEMENTS|CONTACT|PUBLICATIONS|INTERESTS|LANGUAGES|VOLUNTEER)/i.test(trimmed);
-
-      // Contact info: lines before first section that look like email/phone/location
-      if (!currentSection && sections.length === 0 && !isSectionHeading) {
-        if (/[@|•·\|]/.test(trimmed) || /\d{3}[\-\.\s]?\d{3}/.test(trimmed) || trimmed.includes('linkedin') || trimmed.includes('@')) {
-          contact += (contact ? '\n' : '') + trimmed;
+      if (!foundFirstSection && !isSectionHeading(trimmed)) {
+        if (isContactLine(trimmed) || contactLines.length < 2) {
+          contactLines.push(trimmed);
           continue;
         }
-        if (!contact && trimmed.length < 80) { contact += trimmed; continue; }
       }
 
-      if (isSectionHeading) {
+      if (isSectionHeading(trimmed)) {
+        foundFirstSection = true;
         currentSection = { title: trimmed, items: [] };
         sections.push(currentSection);
       } else if (currentSection) {
-        currentSection.items.push(trimmed);
+        if (isBullet(trimmed)) {
+          currentSection.items.push({ type: 'bullet', text: trimmed.replace(/^\s*[\u2022\u2023\u25E6\-\*\u25CF]\s*/, '') });
+        } else if (hasDate(trimmed) && !isBullet(trimmed)) {
+          currentSection.items.push({ type: 'subhead', text: trimmed });
+        } else if (trimmed.length < 70 && !isBullet(trimmed) && currentSection.items.length > 0 
+          && (currentSection.items[currentSection.items.length-1].type === 'blank' || currentSection.items[currentSection.items.length-1].type === undefined)) {
+          currentSection.items.push({ type: 'title', text: trimmed });
+        } else {
+          currentSection.items.push({ type: 'text', text: trimmed });
+        }
       }
     }
-    return { name, contact, sections };
+
+    // Clean trailing blanks from each section
+    sections.forEach(s => {
+      while (s.items.length && s.items[s.items.length-1].type === 'blank') s.items.pop();
+    });
+
+    return { name, contact: contactLines.join(' | '), sections };
   }
 
   function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  function renderSectionItems(items, styles) {
+    let html = '';
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type === 'blank') {
+        html += `<div style="height:${styles.blankH || 6}px;"></div>`;
+      } else if (item.type === 'title') {
+        html += `<div style="font-weight:700;font-size:${styles.titleSize || '11px'};color:${styles.titleColor || '#222'};margin-top:${styles.entryGap || 8}px;margin-bottom:1px;">${esc(item.text)}</div>`;
+      } else if (item.type === 'subhead') {
+        html += `<div style="font-style:italic;font-size:${styles.subSize || '10px'};color:${styles.subColor || '#555'};margin-bottom:3px;">${esc(item.text)}</div>`;
+      } else if (item.type === 'bullet') {
+        html += `<div style="padding-left:14px;text-indent:-14px;margin-bottom:2px;font-size:${styles.bodySize || '10.5px'};color:${styles.bodyColor || '#333'};line-height:1.45;">• ${esc(item.text)}</div>`;
+      } else {
+        html += `<div style="font-size:${styles.bodySize || '10.5px'};color:${styles.bodyColor || '#333'};margin-bottom:2px;line-height:1.45;">${esc(item.text)}</div>`;
+      }
+    }
+    return html;
+  }
+
   function renderTemplate(template, parsed) {
     const { name, contact, sections } = parsed;
 
-    function renderItems(items) {
-      return items.map(item => {
-        const isBullet = /^[\u2022\u2023\u25E6\-\*]\s/.test(item);
-        const text = esc(item.replace(/^[\u2022\u2023\u25E6\-\*]\s/, ''));
-        return isBullet
-          ? `<div style="padding-left:16px;margin-bottom:2px;">• ${text}</div>`
-          : `<div style="margin-bottom:2px;">${esc(item)}</div>`;
-      }).join('');
-    }
-
     if (template === 'classic') {
-      return `<div style="font-family:Georgia,'Times New Roman',serif;font-size:11px;line-height:1.45;color:#222;padding:40px 44px;">
-        <div style="text-align:center;margin-bottom:6px;">
-          <div style="font-size:22px;font-weight:700;letter-spacing:1px;">${esc(name)}</div>
-          ${contact ? `<div style="font-size:10px;color:#555;margin-top:4px;">${esc(contact)}</div>` : ''}
+      const s = { titleSize:'11px',titleColor:'#111',subSize:'10.5px',subColor:'#444',bodySize:'10.5px',bodyColor:'#333',entryGap:10,blankH:4 };
+      return `<div style="font-family:Georgia,'Times New Roman',serif;font-size:10.5px;line-height:1.4;color:#222;padding:36px 40px;">
+        <div style="text-align:center;margin-bottom:4px;">
+          <div style="font-size:20px;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">${esc(name)}</div>
+          ${contact ? `<div style="font-size:9.5px;color:#555;">${esc(contact)}</div>` : ''}
         </div>
-        <hr style="border:none;border-top:1.5px solid #222;margin:10px 0 14px;">
-        ${sections.map(s => `
-          <div style="margin-bottom:12px;">
-            <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:6px;">${esc(s.title)}</div>
-            <div style="font-size:11px;">${renderItems(s.items)}</div>
+        <hr style="border:none;border-top:1px solid #333;margin:8px 0 12px;">
+        ${sections.map(sec => `
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid #bbb;padding-bottom:2px;margin-bottom:5px;">${esc(sec.title)}</div>
+            ${renderSectionItems(sec.items, s)}
           </div>`).join('')}
       </div>`;
     }
 
     if (template === 'modern') {
-      return `<div style="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:11px;line-height:1.45;color:#222;">
-        <div style="background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;padding:28px 40px 20px;margin:-1px;">
-          <div style="font-size:24px;font-weight:700;">${esc(name)}</div>
-          ${contact ? `<div style="font-size:10.5px;opacity:0.85;margin-top:4px;">${esc(contact)}</div>` : ''}
+      const s = { titleSize:'11px',titleColor:'#1e3a5f',subSize:'10px',subColor:'#666',bodySize:'10.5px',bodyColor:'#333',entryGap:10,blankH:4 };
+      return `<div style="font-family:Calibri,'Segoe UI',Arial,sans-serif;font-size:10.5px;line-height:1.4;color:#222;">
+        <div style="background:linear-gradient(135deg,#1e3a5f,#2d5986);color:white;padding:24px 36px 18px;">
+          <div style="font-size:22px;font-weight:700;">${esc(name)}</div>
+          ${contact ? `<div style="font-size:10px;opacity:0.85;margin-top:4px;">${esc(contact)}</div>` : ''}
         </div>
-        <div style="padding:20px 40px 30px;">
-          ${sections.map(s => `
-            <div style="margin-bottom:14px;">
-              <div style="font-size:12px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;padding-bottom:3px;border-bottom:2px solid #1e3a5f;">${esc(s.title)}</div>
-              <div style="font-size:11px;">${renderItems(s.items)}</div>
+        <div style="padding:16px 36px 28px;">
+          ${sections.map(sec => `
+            <div style="margin-bottom:12px;">
+              <div style="font-size:11px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:0.8px;padding-bottom:3px;margin-bottom:5px;border-bottom:2px solid #1e3a5f;">${esc(sec.title)}</div>
+              ${renderSectionItems(sec.items, s)}
             </div>`).join('')}
         </div>
       </div>`;
     }
 
     if (template === 'minimal') {
-      return `<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10.5px;line-height:1.5;color:#333;padding:44px 48px;">
-        <div style="margin-bottom:20px;">
-          <div style="font-size:26px;font-weight:300;letter-spacing:2px;color:#111;">${esc(name)}</div>
-          ${contact ? `<div style="font-size:10px;color:#888;margin-top:6px;letter-spacing:0.5px;">${esc(contact)}</div>` : ''}
+      const s = { titleSize:'10.5px',titleColor:'#222',subSize:'9.5px',subColor:'#888',bodySize:'10px',bodyColor:'#444',entryGap:10,blankH:5 };
+      return `<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:10px;line-height:1.5;color:#333;padding:40px 44px;">
+        <div style="margin-bottom:16px;">
+          <div style="font-size:24px;font-weight:300;letter-spacing:1.5px;color:#111;">${esc(name)}</div>
+          ${contact ? `<div style="font-size:9.5px;color:#999;margin-top:5px;letter-spacing:0.3px;">${esc(contact)}</div>` : ''}
         </div>
-        ${sections.map(s => `
-          <div style="margin-bottom:16px;">
-            <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:2.5px;color:#999;margin-bottom:6px;">${esc(s.title)}</div>
-            <div style="font-size:10.5px;color:#333;">${renderItems(s.items)}</div>
+        ${sections.map(sec => `
+          <div style="margin-bottom:12px;">
+            <div style="font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:#aaa;margin-bottom:5px;">${esc(sec.title)}</div>
+            ${renderSectionItems(sec.items, s)}
           </div>`).join('')}
       </div>`;
     }
 
-    return `<div style="padding:30px;font-family:sans-serif;font-size:11px;white-space:pre-wrap;">${esc(exportResumeText)}</div>`;
+    return `<div style="padding:30px;font-family:sans-serif;font-size:10.5px;white-space:pre-wrap;">${esc(exportResumeText)}</div>`;
   }
 
   function updateExportPreview() {
