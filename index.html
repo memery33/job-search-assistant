@@ -1194,8 +1194,8 @@
 
       // Save each suggested job to Supabase with real search URLs
       for (const job of suggestedJobs) {
-        const query = encodeURIComponent(job.searchQuery || `${job.title} ${job.company}`);
-        const url = `https://www.linkedin.com/jobs/search/?keywords=${query}`;
+        const query = encodeURIComponent((job.searchQuery || `${job.title} ${job.company}`) + ' jobs');
+        const url = `https://www.google.com/search?q=${query}&ibp=htl;jobs`;
         await saveJobToDb({
           title: job.title || '',
           company: job.company || '',
