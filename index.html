@@ -1828,6 +1828,48 @@
     });
   }
 
+  // Migrate existing tailored resumes to add highlights
+  (function migrateTailoredResumes() {
+    let changed = false;
+    resumes.forEach(resume => {
+      if (resume.highlightedHtml) return; // already migrated
+      if (!resume.name.includes('(Tailored)')) return; // not a tailored resume
+
+      const origName = resume.name.replace(' (Tailored)', '');
+      const original = resumes.find(r => r.name === origName && !r.name.includes('(Tailored)'));
+      if (!original) return;
+
+      // Generate highlights by comparing lines
+      const origLines = original.content.split('\n');
+      const tailLines = resume.content.split('\n');
+      let highlighted = '';
+      for (let i = 0; i < tailLines.length; i++) {
+        const tLine = tailLines[i];
+        const oLine = origLines[i] || '';
+        if (tLine.trim() && tLine !== oLine) {
+          // Highlight changed words within the line
+          const tWords = tLine.split(/\s+/);
+          const oWords = oLine.split(/\s+/);
+          const parts = tWords.map((w, j) => {
+            if (j >= oWords.length || w !== oWords[j]) {
+              return '<span class="highlight-change">' + w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</span>';
+            }
+            return w.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          });
+          highlighted += parts.join(' ') + '\n';
+        } else {
+          highlighted += tLine.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '\n';
+        }
+      }
+      resume.highlightedHtml = highlighted;
+      resume.originalId = original.id;
+      changed = true;
+    });
+    if (changed) {
+      localStorage.setItem('molly-resumes', JSON.stringify(resumes));
+    }
+  })();
+
   // Initial render
   renderJobs();
 </script>
