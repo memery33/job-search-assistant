@@ -715,7 +715,7 @@
   // Supabase client
   const SUPABASE_URL = 'https://zdrtsrkokttzqpaetznp.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkcnRzcmtva3R0enFwYWV0em5wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3NzA1MjEsImV4cCI6MjA5MzM0NjUyMX0.jPBr0fwJC0y_94Vu99vsbm6c7np7xPM5fWqZrQrTpZE';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // App state
   let jobs = [];
@@ -762,9 +762,9 @@
     try {
       let result;
       if (isSignUp) {
-        result = await supabase.auth.signUp({ email, password });
+        result = await sb.auth.signUp({ email, password });
       } else {
-        result = await supabase.auth.signInWithPassword({ email, password });
+        result = await sb.auth.signInWithPassword({ email, password });
       }
 
       if (result.error) throw result.error;
@@ -791,12 +791,12 @@
   });
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
     // Auth state change listener will handle UI
   });
 
   // Listen for auth state changes
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  sb.auth.onAuthStateChange(async (event, session) => {
     if (session?.user) {
       currentUser = session.user;
       document.getElementById('auth-screen').style.display = 'none';
@@ -827,7 +827,7 @@
 
     if (localJobs.length > 0) {
       for (const job of localJobs) {
-        await supabase.from('jobs').upsert({
+        await sb.from('jobs').upsert({
           id: undefined,
           user_id: currentUser.id,
           title: job.title,
@@ -848,7 +848,7 @@
 
     if (localResumes.length > 0) {
       for (const resume of localResumes) {
-        await supabase.from('resumes').insert({
+        await sb.from('resumes').insert({
           user_id: currentUser.id,
           name: resume.name,
           content: resume.content || '',
@@ -862,7 +862,7 @@
 
   // ========== SUPABASE CRUD ==========
   async function loadJobs() {
-    const { data, error } = await supabase.from('jobs').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    const { data, error } = await sb.from('jobs').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
     if (error) { console.error('Error loading jobs:', error); return; }
     jobs = (data || []).map(j => ({
       id: j.id,
@@ -881,7 +881,7 @@
   }
 
   async function loadResumes() {
-    const { data, error } = await supabase.from('resumes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+    const { data, error } = await sb.from('resumes').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
     if (error) { console.error('Error loading resumes:', error); return; }
     resumes = (data || []).map(r => ({
       id: r.id,
@@ -911,18 +911,18 @@
 
     if (jobData.id && typeof jobData.id === 'string' && jobData.id.includes('-')) {
       // UUID — update existing
-      const { error } = await supabase.from('jobs').update(row).eq('id', jobData.id);
+      const { error } = await sb.from('jobs').update(row).eq('id', jobData.id);
       if (error) console.error('Error updating job:', error);
     } else {
       // Insert new
-      const { data, error } = await supabase.from('jobs').insert(row).select();
+      const { data, error } = await sb.from('jobs').insert(row).select();
       if (error) { console.error('Error inserting job:', error); return null; }
       return data?.[0]?.id;
     }
   }
 
   async function deleteJobFromDb(id) {
-    const { error } = await supabase.from('jobs').delete().eq('id', id);
+    const { error } = await sb.from('jobs').delete().eq('id', id);
     if (error) console.error('Error deleting job:', error);
   }
 
@@ -936,17 +936,17 @@
     };
 
     if (resumeData.id && typeof resumeData.id === 'string' && resumeData.id.includes('-')) {
-      const { error } = await supabase.from('resumes').update(row).eq('id', resumeData.id);
+      const { error } = await sb.from('resumes').update(row).eq('id', resumeData.id);
       if (error) console.error('Error updating resume:', error);
     } else {
-      const { data, error } = await supabase.from('resumes').insert(row).select();
+      const { data, error } = await sb.from('resumes').insert(row).select();
       if (error) { console.error('Error inserting resume:', error); return null; }
       return data?.[0]?.id;
     }
   }
 
   async function deleteResumeFromDb(id) {
-    const { error } = await supabase.from('resumes').delete().eq('id', id);
+    const { error } = await sb.from('resumes').delete().eq('id', id);
     if (error) console.error('Error deleting resume:', error);
   }
 
@@ -1866,7 +1866,7 @@
     });
   }
 
-  // Initial render is triggered by supabase.auth.onAuthStateChange above
+  // Initial render is triggered by sb.auth.onAuthStateChange above
 </script>
 
 </body>
